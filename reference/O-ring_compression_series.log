@@ -1,0 +1,35 @@
+
+================================================================
+dolfinx 0.11.0 / PETSc (3, 25, 6)
+ÉTUDE : O-ring_compression
+Loi de comportement : neo_hookean
+Formulation : mixte u-p (Taylor-Hood P2-P1)
+Processus MPI : 1
+----------------------------------------------------------------
+Maillage : hexaèdres HEX20 (Cubit Exodus II) [source : exodus]
+Cellules / DDLs : 2592 / 72756
+Ordre FE / Ordre géom : 2 / 2
+Nœuds géométrie : 12221
+Volume : 148.50 mm³
+----------------------------------------------------------------
+Newton : 10 itération(s) / 1 incrément(s), 0 réduction(s) de pas
+Solveur linéaire : direct (10 itérations KSP cumulées)
+Temps assemblage : 14.48 s
+Temps résolution : 55.32 s
+Résidu relatif final : 4.56e-07
+Recherche linéaire : 10 évaluation(s) de résidu
+----------------------------------------------------------------
+Réactions d'appui [N] (force de l'appui sur la structure)
+  symmetry_y             Fx = +0.0000e+00  Fy = +3.9509e-09  Fz = +0.0000e+00
+  symmetry_x             Fx = +3.9509e-09  Fy = +0.0000e+00  Fz = +0.0000e+00
+  symmetry_z             Fx = +0.0000e+00  Fy = +0.0000e+00  Fz = +2.4803e+01
+  TOTAL                  Fx = +3.9509e-09  Fy = +3.9509e-09  Fz = +2.4803e+01
+Bilan global : 9.95e-06 (somme réactions + forces ext., relatif)
+Historique réactions : /mnt/c/Users/oudan/AppData/Local/Temp/opencode/fem_ref_series/results/O-ring_compression_reactions.csv
+----------------------------------------------------------------
+Déplacement max |u| : 4.664172e-01 mm
+Von Mises max (lissé P1) : 7.5373e-01 MPa
+Export ParaView : /mnt/c/Users/oudan/AppData/Local/Temp/opencode/fem_ref_series/results/O-ring_compression.bp
+Champs exportés : displacement, von_mises, cauchy_stress, principal_stress, mean_stress, tresca, strain, principal_strain, equivalent_strain, principal_stretch, J
+================================================================
+
