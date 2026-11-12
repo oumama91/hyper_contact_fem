@@ -1,0 +1,63 @@
+# =====================================================================
+# O-ring (quart de tore R=15, r=2 mm, sans méplat)
+# Maillage HEX20 typé "Hertz" : très fin au sommet (0.034 mm), grossier
+# à la base (0.50 mm), économique en révolution (2592 éléments)
+# =====================================================================
+reset
+
+# ---- Import du STEP -------------------------------------------------
+import step "D:/Recherche/FEM/cad/O-ring.step" heal
+volume all scale 1.0
+
+# ---- Schéma par défaut (AVANT les dualbias) -------------------------
+curve all scheme equal
+
+# ---- 1) Base z = 0 (2 segments droits de 4.0 mm) : grossier ---------
+# 8 éléments réguliers de 0.50 mm (zone loin du contact)
+curve with length < 5.0 interval 8
+curve with length < 5.0 scheme equal
+
+# ---- 2) Demi-cercles de section (2 arcs de ~6.283 mm) : très fin ----
+# 32 éléments avec fort resserrement vers le sommet z = 2.0 mm
+# Taille : 0.56 mm aux pieds (z=0) -> 0.034 mm au sommet (z=2.0)
+curve with length > 5.0 and length < 10.0 interval 32
+curve with length > 5.0 and length < 10.0 scheme dualbias factor 0.83
+
+# ---- 3) Courbes de révolution (longueur > 20 mm, 90 deg) ------------
+# 24 éléments (ou 30) : suffisant en HEX20 car problème 2D axisymétrique
+curve with length > 10.0 interval 24
+curve with length > 10.0 scheme equal
+
+# ---- Section : pavage quad sur les plans y = 0 et x = 0 -------------
+surface with y_coord < 0.001 scheme pave
+surface with x_coord < 0.001 scheme pave
+
+# ---- Volume : balayage de y = 0 vers x = 0 --------------------------
+volume all scheme sweep source surface with y_coord < 0.001 target surface with x_coord < 0.001
+mesh volume all
+
+# ---- Bloc HEX20 -----------------------------------------------------
+block 1 add volume all
+block 1 name "oring_hex20"
+block 1 element type hex20
+
+# ---- Sidesets -------------------------------------------------------
+sideset 1 add surface with y_coord < 0.001
+sideset 1 name "symmetry_y"
+
+sideset 2 add surface with x_coord < 0.001
+sideset 2 name "symmetry_x"
+
+sideset 3 add surface with z_coord < 0.001
+sideset 3 name "symmetry_z"
+
+sideset 4 add surface with x_coord > 0.1 and y_coord > 0.1 and z_coord > 0.1
+sideset 4 name "compression"
+
+# ---- Contrôle du nombre d'éléments et de la qualité -----------------
+list sideset all
+list block all
+quality volume all scaled jacobian global
+
+# ---- Export ---------------------------------------------------------
+export mesh "O-ring.exo" overwrite

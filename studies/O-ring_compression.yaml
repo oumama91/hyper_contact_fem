@@ -1,0 +1,66 @@
+# Système d'unités cohérent : mm, t (tonne), s, N, MPa
+#   -> E [MPa], rho [t/mm^3], gravité [mm/s^2], forces [N], déplacements [mm]
+
+study_name: "O-ring_compression"
+
+mesh:
+  source: "exodus"
+  file: "../mesh/O-ring.exo"
+  order: 2
+  quadrature_degree: 4
+
+material:
+  model: "neo_hookean"
+  E: 6.0
+  nu: 0.4999               # formulation mixte u-p (Taylor-Hood)
+  rho: 1.2e-9
+
+physics:
+  gravity: [0.0, 0.0, 0.0]
+
+boundaries:
+  # Symétrie plan y = 0 : face de section de départ
+  - name: "symmetry_y"
+    type: "dirichlet"
+    components: [1]
+    value: [0.0]
+    probe_points: [[15.0, 0.0, 0.9]]
+
+  # Symétrie plan x = 0 : face de section d'arrivée (quart de tore)
+  - name: "symmetry_x"
+    type: "dirichlet"
+    components: [0]
+    value: [0.0]
+    probe_points: [[0.0, 15.0, 0.9]]
+
+  # Plan médian z = 0 : demi-section (joint statique)
+  - name: "symmetry_z"
+    type: "dirichlet"
+    components: [2]
+    value: [0.0]
+    probe_points: [[10.607, 10.607, 0.0]]
+
+  # Peau torique (sommet initial à z = 2.0 mm) écrasée par le plan supérieur
+  - name: "compression"
+    type: "contact"
+    obstacle:
+      kind: "plane"
+      point: [0.0, 0.0, 1.8]      # cote du plan (1.8 mm -> 0.2 mm d'écrasement ; 1.6 mm -> 0.4 mm d'écrasement)
+      normal: [0.0, 0.0, -1.0]    # normale sortante de l'obstacle (dirigée vers le joint : -ez)
+    epsilon_n: 1.0e+3             # [MPa/mm] pénalité normale (calibrée pour E = 6 MPa)
+    epsilon_t: 1.0e+3             # [MPa/mm] pénalité tangentielle
+    friction: 0.0                 # 0.0 = sans frottement (glissement radial libre), ou ex. 0.2
+    probe_points: [[10.607, 10.607, 2.0]]
+    probe_tol: 0.2
+
+solver:
+  method: "direct"
+  rtol: 1.0e-8
+  newton:
+    increments: 1
+    max_iter: 30
+    rtol: 1.0e-6
+
+output:
+  fields: all
+  outdir: "../results"
