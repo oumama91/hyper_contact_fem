@@ -29,6 +29,13 @@ python tools/capture_metrics.py <yaml-temporaire> --out reference/....json
 mpiexec -n 2 python tools/capture_metrics.py <yaml-temporaire> --out reference/....json
 ```
 
+Toutes les commandes passent par `tools/wsl_run.sh`, qui fixe par défaut
+`OMP_NUM_THREADS=OPENBLAS_NUM_THREADS=MKL_NUM_THREADS=1`. Sans ce réglage, la factorisation
+MUMPS via un BLAS multi-thread n'est pas reproductible : deux exécutions du **même** code
+OLD divergent déjà de ~1e-15 sur |u|max et sur les composantes de réaction de l'ordre de
+1e-9 N, ce qui rend la tolérance série 1e-12 inatteignable. Un thread par défaut rend les
+runs série bit à bit identiques ; la valeur reste surchargeable par l'appelant.
+
 ## Fichiers
 
 | Fichier | Contenu |
@@ -49,14 +56,14 @@ ce nom dans le nouveau dépôt). Le contenu numérique des journaux est inchang�
 
 | Grandeur | Série | np = 2 |
 |---|---|---|
-| `u_max` [mm] | 4.664172049663098e-01 | 4.6641720496630973e-01 |
-| `vm_max` [MPa] | 7.537310547729684e-01 | 7.537310547729688e-01 |
-| `rel_res` | 4.564018773103674e-07 | 4.564018773119079e-07 |
+| `u_max` [mm] | 4.664172049663108e-01 | 4.664172049663042e-01 |
+| `vm_max` [MPa] | 7.537310547729685e-01 | 7.537310547729683e-01 |
+| `rel_res` | 4.564018773083237e-07 | 4.564018773111702e-07 |
 | incréments | 1 | 1 |
 | itérations Newton | 10 | 10 |
 | cutbacks | 0 | 0 |
-| `imbalance` | 9.950141512928887e-06 | 9.950141513000514e-06 |
-| `total_Fz` [N] | 2.480275894546312e+01 | 2.4802758945463097e+01 |
+| `imbalance` | 9.950141512499176e-06 | 9.950141513215369e-06 |
+| `total_Fz` [N] | 2.480275894546313e+01 | 2.480275894546309e+01 |
 
 ## Comparaison
 

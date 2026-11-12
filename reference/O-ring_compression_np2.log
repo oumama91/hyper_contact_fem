@@ -14,8 +14,8 @@ Volume : 148.50 mm³
 ----------------------------------------------------------------
 Newton : 10 itération(s) / 1 incrément(s), 0 réduction(s) de pas
 Solveur linéaire : direct (10 itérations KSP cumulées)
-Temps assemblage : 8.35 s
-Temps résolution : 113.84 s
+Temps assemblage : 8.93 s
+Temps résolution : 75.79 s
 Résidu relatif final : 4.56e-07
 Recherche linéaire : 10 évaluation(s) de résidu
 ----------------------------------------------------------------
