@@ -128,7 +128,7 @@ def postprocess(comm: MPI.Comm, domain: Mesh, forms: Forms, config: Config) -> P
     gdim = domain.geometry.dim
     if gdim != 3:
         raise NotImplementedError("post-traitement : maillages 3D uniquement.")
-    requested = resolve_fields(config.output.fields, forms.mixed)
+    requested = resolve_fields(config.output.fields)
     wanted = set(requested)
 
     u_h = forms.displacement()

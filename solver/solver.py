@@ -13,7 +13,7 @@ from petsc4py import PETSc
 
 from preproc.config import Config, NewtonConfig
 from preproc.forms import Forms
-from solver.linear_solver import LinearSolver, NewtonDiverged, check_nullspace
+from solver.linear_solver import LinearSolver, NewtonDiverged
 from utils import assemble_vec, petsc_vec
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ STEP_GROWTH = 1.5       # facteur d'agrandissement du pas (plafonné au pas nomi
 @dataclass(frozen=True)
 class SolverMetrics:
     """Métriques d'un solve_newton terminé (remplace l'ancien dict à clés)."""
-    method: str            # méthode du solveur linéaire (solver.method du YAML)
+    method: str            # méthode du solveur linéaire (LU direct MUMPS)
     iterations: int        # itérations KSP cumulées
     newton_iterations: int  # résolutions de Newton cumulées (une par itération convergée)
     increments: int        # incréments de charge acceptés
@@ -56,8 +56,7 @@ class _NewtonWorkspace:
     """Matrice et vecteurs de travail créés UNE fois pour tout le calcul (§3.5).
 
     Avant : assemble_matrix / assemble_vec / duplicate allouaient une Mat et deux Vec à CHAQUE
-    itération de Newton (et pour GAMG, setOperators sur une matrice neuve reconstruisait toute
-    la hiérarchie multigrille). Ici : même matrice (zeroEntries + réassemblage), mêmes vecteurs.
+    itération de Newton. Ici : même matrice (zeroEntries + réassemblage), mêmes vecteurs.
     """
     matrix: PETSc.Mat      # jacobienne assemblée en place
     residual: PETSc.Vec    # résidu courant, réassemblé en place
@@ -190,11 +189,10 @@ def solve_newton(
     on_increment: Callable[[float], None] | None = None,
 ) -> SolverMetrics:
     """
-    Solveur unique pour toutes les lois : chargement proportionnel lambda de 0 à 1 par incréments
-    (nominal : 1/solver.newton.increments), Newton (avec recherche linéaire) à chaque incrément,
-    réduction automatique du pas en cas d'échec (jusqu'à max_cutbacks réductions successives),
-    retour progressif au pas nominal après EASY_STREAK incréments faciles consécutifs.
-    Un problème linéaire converge en une résolution : le cas linéaire n'est pas un cas particulier.
+    Solveur de Newton pour la formulation mixte (u, p) : chargement proportionnel lambda de 0 à 1
+    par incréments (nominal : 1/solver.newton.increments), Newton (avec recherche linéaire) à chaque
+    incrément, réduction automatique du pas en cas d'échec (jusqu'à max_cutbacks réductions
+    successives), retour progressif au pas nominal après EASY_STREAK incréments faciles consécutifs.
 
     La solution est écrite en place dans forms.uh (lisible via forms.displacement()).
     Retourne les métriques du calcul (SolverMetrics : méthode, itérations, temps, résidu final).
@@ -206,13 +204,6 @@ def solve_newton(
     rel_res = 0.0
 
     with LinearSolver(comm, forms.V, config) as lin:
-        if (
-            lin.nullspace is not None
-            and config.solver.check_nullspace
-            and not check_nullspace(forms.jacobian, lin.nullspace)
-        ):
-            raise RuntimeError("Les modes rigides ne sont pas dans le noyau de la matrice de raideur.")
-
         work = _NewtonWorkspace.create(forms)
         try:
             dlam_nominal = 1.0 / nw.increments
@@ -269,7 +260,7 @@ def solve_newton(
             work.destroy()
 
     return SolverMetrics(
-        method=config.solver.method,
+        method="direct (MUMPS)",
         iterations=ksp_its,
         newton_iterations=n_newton,
         increments=n_steps,

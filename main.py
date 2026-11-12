@@ -22,20 +22,11 @@ logger = logging.getLogger(__name__)
 
 RULE = "-" * 64
 
-# gmsh n'est requis que par la source de maillage 'gmsh' (backend importé à la demande) : une étude
-# purement Exodus (Cubit) doit pouvoir tourner sans gmsh installé.
-try:
-    import gmsh
-
-    GMSH_LABEL = f"gmsh {gmsh.__version__}"
-except ImportError:  # pragma: no cover - dépend de l'environnement
-    GMSH_LABEL = "gmsh absent"
-
-# Erreurs attendues (config invalide, CAO/maillage introuvable, Newton non convergé, ...) : message
+# Erreurs attendues (config invalide, maillage introuvable, Newton non convergé, ...) : message
 # clair sans traceback en usage normal. NewtonDiverged (solver/linear_solver.py) est une RuntimeError,
 # déjà couverte, et n'a jamais besoin de remonter jusqu'ici (solve_newton la convertit en RuntimeError
 # après épuisement des réductions de pas).
-# ImportError inclus : dépendance d'un backend de maillage absente (message clair, voir preproc/mesher.py).
+# ImportError inclus : dépendance de lecture du maillage absente (netCDF4).
 EXPECTED_ERRORS = (ValueError, FileNotFoundError, RuntimeError, ImportError)
 
 
@@ -60,10 +51,10 @@ def print_summary(
     t = final.total
 
     logger.info("\n" + "=" * 64)
-    logger.info(f"dolfinx {dolfinx.__version__} / {GMSH_LABEL} / PETSc {PETSc.Sys.getVersion()}")
+    logger.info(f"dolfinx {dolfinx.__version__} / PETSc {PETSc.Sys.getVersion()}")
     logger.info(f"ÉTUDE : {config.study_name}")
     logger.info(f"Loi de comportement : {config.material.model}")
-    logger.info("Formulation : " + (f"mixte u-p (Taylor-Hood P{k}-P{k - 1})" if forms.mixed else "déplacement"))
+    logger.info(f"Formulation : mixte u-p (Taylor-Hood P{k}-P{k - 1})")
     logger.info(f"Processus MPI : {comm.size}")
     logger.info(RULE)
     logger.info(f"Maillage : {mesh.description} [source : {mesh.source}]")
@@ -110,7 +101,7 @@ def _run(args: argparse.Namespace, comm: MPI.Comm) -> int:
     forms = build_forms(mesh.domain, mesh.facet_tags, mesh.boundary_tags, config)
     dirichlet = apply_bcs(forms, mesh.facet_tags, mesh.boundary_tags, config)
 
-    # 4. Résolution (Newton unique : le cas linéaire converge en une résolution).
+    # 4. Résolution (Newton avec pilotage de charge).
     #    Les réactions d'appui sont enregistrées à chaque incrément accepté.
     history = ReactionHistory(comm, forms, dirichlet)
     solver_metrics = solve_newton(comm, forms, dirichlet, config, on_increment=history)
@@ -125,7 +116,7 @@ def _run(args: argparse.Namespace, comm: MPI.Comm) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Solveur éléments finis statique 3D piloté par YAML (FEniCSx)")
-    parser.add_argument("study", help="Chemin vers le fichier YAML de l'étude (ex: studies/beam_bending.yaml)")
+    parser.add_argument("study", help="Chemin vers le fichier YAML de l'étude (ex: studies/O-ring_compression.yaml)")
     parser.add_argument("--verbose", action="store_true", help="Affiche les détails du maillage, des tags et des incréments")
     args = parser.parse_args()
 

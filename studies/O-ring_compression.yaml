@@ -54,7 +54,6 @@ boundaries:
     probe_tol: 0.2
 
 solver:
-  method: "direct"
   rtol: 1.0e-8
   newton:
     increments: 1

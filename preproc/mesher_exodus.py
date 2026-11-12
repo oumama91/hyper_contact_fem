@@ -1,9 +1,9 @@
 """
 Backend de maillage Exodus II (Cubit) : HEX8 / HEX20 -> maillage dolfinx + tags de facettes.
 
-Contrat identique à celui du backend Gmsh (voir preproc/mesher.py) : build_mesh(comm, config) renvoie un
-MeshResult (maillage, tags de facettes, noms de boundaries) ; l'aval (formes, conditions aux limites,
-solveur, post-traitement) ignore la provenance du maillage.
+Contrat : build_mesh(comm, config) renvoie un MeshResult (maillage, tags de facettes, noms de
+boundaries) ; l'aval (formes, conditions aux limites, solveur, post-traitement) ignore la
+provenance du maillage.
 
 Éléments supportés (v1) : HEX8 (géométrie linéaire) et HEX20 (géométrie quadratique : élément serendipity
 de basix, 20 nœuds). Les sidesets Exodus deviennent les boundaries nommées du YAML ; leurs faces (1..6)
@@ -375,11 +375,11 @@ def build_mesh(comm: MPI.Comm, config: Config) -> MeshResult:
     element = basix.ufl.element(family, "hexahedron", degree, shape=(3,))
 
     # create_mesh attend la connectivité d'UN SEUL rang : dolfinx distribue ensuite maillage et nœuds
-    # depuis ce rang d'entrée (c'est ce que fait dolfinx.io.gmsh.model_to_mesh : « mesh nodes are only
-    # distributed from the input rank »). Passer 'cells' sur tous les rangs ne lève aucune erreur mais
-    # corrompt le tas : plantage malloc()/SIGABRT dès n > 1 (mesuré sur dolfinx 0.11.0, quel que soit le
-    # type d'élément). Ici, seul le rang 0 détient points et connectivité (lus du fichier) : les autres
-    # rangs passent donc naturellement des tableaux vides.
+    # depuis ce rang d'entrée (« mesh nodes are only distributed from the input rank »). Passer
+    # 'cells' sur tous les rangs ne lève aucune erreur mais corrompt le tas : plantage
+    # malloc()/SIGABRT dès n > 1 (mesuré sur dolfinx 0.11.0, quel que soit le type d'élément). Ici,
+    # seul le rang 0 détient points et connectivité (lus du fichier) : les autres rangs passent donc
+    # naturellement des tableaux vides.
     if comm.rank == 0:
         if ex is None:  # inatteignable : sans erreur de lecture, le rang 0 détient le maillage complet
             raise RuntimeError("Lecture du maillage Exodus : maillage absent sur le rang 0.")
@@ -410,7 +410,7 @@ def build_mesh(comm: MPI.Comm, config: Config) -> MeshResult:
     _raise_collective(comm, error)
 
     fdim = domain.topology.dim - 1
-    boundary_tags = {name: 2 + i for i, name in enumerate(facets)}       # mêmes tags que le backend Gmsh
+    boundary_tags = {name: 2 + i for i, name in enumerate(facets)}       # tags 2, 3, ... dans l'ordre des sidesets
     indices = np.concatenate([facets[name] for name in boundary_tags])
     values = np.concatenate([np.full(facets[name].size, tag, dtype=np.int32) for name, tag in boundary_tags.items()])
     sort_idx = np.argsort(indices)

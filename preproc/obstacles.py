@@ -6,7 +6,7 @@ Trois formes, union discriminée sur 'kind' : plan, cylindre, sphère. Chacune n
 géométrie de l'obstacle rigide (pas la pénalité ni le frottement, portés par ContactBoundary) ;
 preproc/contact.py::gap_and_normal sait calculer jauge signée et normale pour chacune.
 
-Pourquoi un module séparé (et non des classes dans config.py comme DirichletBoundary/NeumannBoundary) :
+Pourquoi un module séparé (et non des classes dans config.py comme DirichletBoundary/ContactBoundary) :
 un obstacle n'est pas un type de boundary, c'est un objet géométrique RÉFÉRENCÉ PAR une ContactBoundary
 (champ 'obstacle'). Le regrouper avec le reste de la config (sections YAML, règles croisées, etc.)
 aurait mélangé deux préoccupations différentes : la validation de la structure du YAML (config.py) et

@@ -5,12 +5,11 @@ from typing import Any
 import ufl
 from dolfinx import fem
 
-from utils import Expr, SCALAR
-from preproc.materials import _check_young_poisson, lame_mu, register_material
 from preproc.hyperelasticity import HyperelasticMaterial
+from preproc.materials import _check_young_poisson, lame_mu
+from utils import SCALAR, Expr
 
 
-@register_material("neo_hookean")
 class NeoHookean(HyperelasticMaterial):
     """
     Néo-hookéen, formulation isochore/volumique (même forme qu'Ansys) :
@@ -19,8 +18,6 @@ class NeoHookean(HyperelasticMaterial):
     (K/2)(J - 1)^2 est remplacé par p (J - 1) - p²/(2K), équivalent après élimination de p = K (J - 1).
     Paramètres YAML : E, nu -> mu = E / (2(1+nu)), 1/K = 3 (1 - 2 nu) / E (nu = 0.5 : 1/K = 0).
     """
-
-    REQUIRED_PARAMS = ("E", "nu")
 
     @classmethod
     def check_values(cls, params: dict[str, Any]) -> None:
