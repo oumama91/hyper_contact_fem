@@ -8,9 +8,9 @@ import ufl
 from dolfinx import fem
 from dolfinx.mesh import Mesh, MeshTags
 
-from preproc.config import Config, ContactBoundary
-from preproc.contact import contact_traction
-from preproc.neo_hookean import NeoHookean
+from config import Config, ContactBoundary
+from contact import contact_traction
+from neo_hookean import NeoHookean
 from utils import Expr, JIT_OPTIONS, SCALAR, owned_size
 
 
@@ -28,8 +28,8 @@ class Forms:
     residual: fem.Form         # forme compilée R(uh; v) = f_int - f_ext
     jacobian: fem.Form         # forme compilée dR/d(uh) (tangente)
     external: fem.Form         # forme compilée des forces extérieures f_ext : gravité pilotée (x lambda)
-                                # + réaction de contact (non mise à l'échelle, voir preproc/contact.py) ;
-                                # postproc/reactions.py s'appuie sur cette somme complète pour le bilan global
+                                # + réaction de contact (non mise à l'échelle, voir contact.py) ;
+                                # reactions.py s'appuie sur cette somme complète pour le bilan global
     load: fem.Constant         # facteur de charge lambda dans [0, 1] (gravité)
     dx: ufl.Measure            # mesure de volume (degré de quadrature inclus)
     material: NeoHookean       # loi de comportement (contraintes, déformations et J pour le post-traitement)
@@ -74,7 +74,7 @@ class Forms:
 #   W_ext = lambda * (travail de la gravité) + W_contact(v)
 # Le travail interne est fourni par la loi (NeoHookean.internal_work) ; les règles de
 # compatibilité (mesh.order >= 2 pour Taylor-Hood) sont vérifiées par la configuration.
-# Le contact (preproc/contact.py) ajoute un travail virtuel W_contact(v) = ∫_Γc t_c(uh)·v ds,
+# Le contact (contact.py) ajoute un travail virtuel W_contact(v) = ∫_Γc t_c(uh)·v ds,
 # NON multiplié par lambda : c'est une réaction de contrainte unilatérale, pas une charge
 # pilotée. Comme t_c dépend de uh (jauge g_N et glissement tangentiel), sa contribution à la
 # tangente est obtenue par ufl.derivative exactement comme le reste du résidu.

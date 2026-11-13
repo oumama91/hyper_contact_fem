@@ -4,7 +4,7 @@ from __future__ import annotations
 import numpy as np
 import ufl
 
-from preproc.fields import COMPONENTS
+from fields import COMPONENTS
 from utils import Expr
 
 

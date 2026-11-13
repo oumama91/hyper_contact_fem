@@ -1,10 +1,10 @@
 """
-Types pydantic primitifs partagés par preproc/config.py et preproc/obstacles.py.
+Types pydantic primitifs partagés par config.py et obstacles.py.
 
-Extrait de preproc/config.py (refactor) pour casser la dépendance circulaire qui serait sinon
-nécessaire : preproc/obstacles.py a besoin de ces types de base (Vec3, PositiveNumber, _Section) mais
-NE DOIT PAS importer preproc.config (qui, lui, importe Obstacle depuis preproc.obstacles). Ce module
-n'importe rien de preproc.config ni de preproc.obstacles : c'est la feuille de la dépendance.
+Extrait de config.py (refactor) pour casser la dépendance circulaire qui serait sinon
+nécessaire : obstacles.py a besoin de ces types de base (Vec3, PositiveNumber, _Section) mais
+NE DOIT PAS importer config (qui, lui, importe Obstacle depuis obstacles). Ce module
+n'importe rien de config ni de obstacles : c'est la feuille de la dépendance.
 
 Sémantique inchangée par rapport à l'ancienne validation manuelle (voir historique de config.py) :
   * un nombre est un int ou un float (jamais un booléen, jamais une chaîne) ;

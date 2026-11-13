@@ -9,13 +9,13 @@ import dolfinx
 from mpi4py import MPI
 from petsc4py import PETSc
 
-from preproc.config import Config, load_config
-from preproc.forms import Forms, build_forms
-from preproc.dirichlet import apply_bcs
-from preproc.mesher_exodus import MeshResult, build_mesh
-from postproc.postproc import PostprocResult, postprocess
-from postproc.reactions import ReactionHistory
-from solver.solver import SolverMetrics, solve_newton
+from config import Config, load_config
+from forms import Forms, build_forms
+from dirichlet import apply_bcs
+from exodus_mesh import MeshResult, build_mesh
+from postproc import PostprocResult, postprocess
+from reactions import ReactionHistory
+from solver import SolverMetrics, solve_newton
 from utils import configure_logging, total_size
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 RULE = "-" * 64
 
 # Erreurs attendues (config invalide, maillage introuvable, Newton non convergé, ...) : message
-# clair sans traceback en usage normal. NewtonDiverged (solver/linear_solver.py) est une RuntimeError,
+# clair sans traceback en usage normal. NewtonDiverged (linear_solver.py) est une RuntimeError,
 # déjà couverte, et n'a jamais besoin de remonter jusqu'ici (solve_newton la convertit en RuntimeError
 # après épuisement des réductions de pas).
 # ImportError inclus : dépendance de lecture du maillage absente (netCDF4).

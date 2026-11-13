@@ -11,9 +11,9 @@ from dolfinx.fem.petsc import apply_lifting, assemble_matrix, create_matrix, cre
 from mpi4py import MPI
 from petsc4py import PETSc
 
-from preproc.config import Config, NewtonConfig
-from preproc.forms import Forms
-from solver.linear_solver import LinearSolver, NewtonDiverged
+from config import Config, NewtonConfig
+from forms import Forms
+from linear_solver import LinearSolver, NewtonDiverged
 from utils import assemble_vec, petsc_vec
 
 logger = logging.getLogger(__name__)

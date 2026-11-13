@@ -14,7 +14,7 @@ from __future__ import annotations
 import ufl
 from dolfinx import fem
 
-from preproc.materials import deformation_gradient
+from materials import deformation_gradient
 from utils import Expr
 
 

@@ -4,7 +4,7 @@ from dolfinx import fem
 from mpi4py import MPI
 from petsc4py import PETSc
 
-from preproc.config import Config
+from config import Config
 
 
 class NewtonDiverged(RuntimeError):

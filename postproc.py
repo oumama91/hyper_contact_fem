@@ -11,9 +11,9 @@ dont la numérotation commune est vérifiée avant l'écriture.
 Projection nodale : L2 à masse concentrée vers P1 (moyenne pondérée aux sommets), en une seule passe pour
 tous les champs. VM, pression moyenne, J, composantes de contrainte et de déformation sont évalués aux points
 de quadrature ; les valeurs principales (et Tresca, déformation équivalente) sont calculées ensuite par
-diagonalisation des tenseurs nodaux (postproc/tensors.py). Les tenseurs sortent en champs 3x3 (9 composantes)
+diagonalisation des tenseurs nodaux (tensors.py). Les tenseurs sortent en champs 3x3 (9 composantes)
 et les valeurs principales en champs vectoriels : un seul menu ParaView par grandeur.
-Catalogue et conventions : preproc/fields.py.
+Catalogue et conventions : fields.py.
 
 postprocess() enchaîne les étapes suivantes :
     _max_displacement        -> métrique u_max
@@ -33,12 +33,12 @@ from dolfinx import fem
 from dolfinx.mesh import Mesh
 from mpi4py import MPI
 
-from preproc.config import Config
-from preproc.fields import COMPONENTS, resolve_fields
-from preproc.forms import Forms
-from postproc.tensors import principal_values, symmetric, von_mises
-from postproc.projection import export_spaces, nodal_columns, project_p1
-from postproc.vtx_export import write_vtx
+from config import Config
+from fields import COMPONENTS, resolve_fields
+from forms import Forms
+from tensors import principal_values, symmetric, von_mises
+from projection import export_spaces, nodal_columns, project_p1
+from vtx_export import write_vtx
 from utils import Expr
 
 # Champs d'export qui exigent le tenseur des contraintes / des déformations
@@ -120,7 +120,7 @@ class PostprocResult:
 
 def postprocess(comm: MPI.Comm, domain: Mesh, forms: Forms, config: Config) -> PostprocResult:
     """
-    Calcule les champs demandés (output.fields, voir preproc/fields.py), extrait les métriques globales
+    Calcule les champs demandés (output.fields, voir fields.py), extrait les métriques globales
     et exporte en VTX. 'forms' porte la solution (uh), la loi de comportement et les accès symboliques
     (displacement_ufl, cauchy_ufl), que la formulation soit mixte u-p ou en déplacement seul.
     Retourne un PostprocResult (u_max, vm_max, fichier VTX, champs exportés).

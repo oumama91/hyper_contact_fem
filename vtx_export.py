@@ -8,7 +8,7 @@ from dolfinx import fem
 from dolfinx.io import VTXWriter
 from mpi4py import MPI
 
-from preproc.config import Config
+from config import Config
 from utils import ensure_dir
 
 

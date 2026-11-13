@@ -8,8 +8,8 @@ from dolfinx import fem
 from dolfinx.mesh import MeshTags
 from mpi4py import MPI
 
-from preproc.config import Config, DirichletBoundary
-from preproc.forms import Forms
+from config import Config, DirichletBoundary
+from forms import Forms
 from utils import SCALAR, owned_size
 
 
@@ -64,7 +64,7 @@ class DirichletSet:
 
     'entries' et 'owned' servent au calcul des réactions (dofs dans la numérotation de V, mixte ou non).
     'names', 'owner' et 'comp_of' sont précalculés une seule fois ICI (et non à chaque incrément dans
-    postproc/reactions.py) : 'owner[dof]' est l'index dans 'names' de la boundary qui possède 'dof'
+    reactions.py) : 'owner[dof]' est l'index dans 'names' de la boundary qui possède 'dof'
     (-1 si non contraint), 'comp_of[dof]' sa composante. Même règle que l'application des BC :
     la dernière boundary déclarée qui contraint un dof donné l'emporte (pas de double comptage).
     """

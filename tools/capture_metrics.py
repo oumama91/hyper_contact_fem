@@ -11,7 +11,7 @@ Statistiques de champs (Étape 2.0) : pour chaque champ exporté, ``--fields-out
 le minimum, le maximum et la norme l2 des valeurs nodales, réduits sur tous les rangs.
 ``adios2`` n'est pas installé dans ``fenicsx-env`` et ``dolfinx`` 0.11 n'expose pas de
 lecteur VTX : les valeurs sont donc capturées AU MOMENT de l'export, en enveloppant
-``postproc.postproc.write_vtx`` (les valeurs nodales écrites dans le .bp sont copiées, pas
+``postproc.write_vtx`` (les valeurs nodales écrites dans le .bp sont copiées, pas
 modifiées). Cette instrumentation ne change ni les calculs ni les fichiers de sortie.
 
 Conventions des statistiques : min/max portent sur toutes les composantes nodales du champ
@@ -42,14 +42,14 @@ from mpi4py import MPI
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path.cwd()))
 
-import postproc.postproc as pp  # noqa: E402
-from postproc.postproc import postprocess  # noqa: E402
-from postproc.reactions import ReactionHistory  # noqa: E402
-from preproc.config import load_config  # noqa: E402
-from preproc.dirichlet import apply_bcs  # noqa: E402
-from preproc.forms import build_forms  # noqa: E402
-from preproc.mesher_exodus import build_mesh  # noqa: E402
-from solver.solver import solve_newton  # noqa: E402
+import postproc as pp  # noqa: E402
+from postproc import postprocess  # noqa: E402
+from reactions import ReactionHistory  # noqa: E402
+from config import load_config  # noqa: E402
+from dirichlet import apply_bcs  # noqa: E402
+from forms import build_forms  # noqa: E402
+from exodus_mesh import build_mesh  # noqa: E402
+from solver import solve_newton  # noqa: E402
 from utils import configure_logging  # noqa: E402
 
 
@@ -64,7 +64,7 @@ class _FieldCapture:
 
 
 def _install_field_capture(capture: _FieldCapture):
-    """Enveloppe postproc.postproc.write_vtx : copie ses arguments, puis délègue à l'original."""
+    """Enveloppe postproc.write_vtx : copie ses arguments, puis délègue à l'original."""
     original = pp.write_vtx
 
     def wrapper(comm, config, spaces, u_h, requested, values):

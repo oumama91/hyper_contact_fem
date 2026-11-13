@@ -3,7 +3,7 @@ Lecture des maillages Exodus II (Cubit) : aucune dépendance à dolfinx (comme f
 
 Un fichier .exo exporté par Cubit contient tout ce qu'il faut au solveur : coordonnées, maillage et
 regroupements nommés de faces (sidesets). Ce module en extrait ces informations sans les interpréter ;
-c'est preproc/mesher_exodus.py qui les convertit en maillage dolfinx.
+c'est exodus_mesh.py qui les convertit en maillage dolfinx.
 
 Limites volontaires de la v1 (erreurs explicites plutôt que comportement implicite) :
   * un seul bloc d'éléments (pas de multi-matériaux) ;

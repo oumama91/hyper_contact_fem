@@ -23,7 +23,7 @@ from typing import Annotated, Literal
 import yaml
 from pydantic import Field, field_validator, model_validator
 
-from preproc.config_types import (
+from config_types import (
     IntGe0,
     IntGe1,
     Integer,
@@ -33,9 +33,9 @@ from preproc.config_types import (
     Vec3,
     _Section,
 )
-from preproc.fields import resolve_fields
-from preproc.neo_hookean import NeoHookean
-from preproc.obstacles import CylinderObstacle, Obstacle, PlaneObstacle, SphereObstacle  # noqa: F401 (réexport)
+from fields import resolve_fields
+from neo_hookean import NeoHookean
+from obstacles import CylinderObstacle, Obstacle, PlaneObstacle, SphereObstacle  # noqa: F401 (réexport)
 
 
 # -----------------------------------------------------------------------------
@@ -76,7 +76,7 @@ class MaterialConfig(_Section):
     rho: NonNegativeNumber
 
     def params(self) -> dict[str, float | str]:
-        """Paramètres transmis à la loi néo-hookéenne (instanciée par preproc/forms.py)."""
+        """Paramètres transmis à la loi néo-hookéenne (instanciée par forms.py)."""
         return {"model": self.model, "E": self.E, "nu": self.nu, "rho": self.rho}
 
 
@@ -110,13 +110,13 @@ class DirichletBoundary(_BoundaryBase):
 
 # -----------------------------------------------------------------------------
 # Contact unilatéral contre un obstacle rigide analytique : la géométrie de l'obstacle
-# (PlaneObstacle/CylinderObstacle/SphereObstacle/Obstacle) vit dans preproc/obstacles.py (réexportée
+# (PlaneObstacle/CylinderObstacle/SphereObstacle/Obstacle) vit dans obstacles.py (réexportée
 # ci-dessus) ; seule la boundary elle-même (pénalité, frottement) est déclarée ici.
 # -----------------------------------------------------------------------------
 class ContactBoundary(_BoundaryBase):
     """
     Contact unilatéral (pénalité) contre un obstacle rigide analytique, avec frottement de Coulomb
-    régularisé (formulation holonome, voir preproc/contact.py : valide pour un chargement monotone,
+    régularisé (formulation holonome, voir contact.py : valide pour un chargement monotone,
     sans décharge/inversion du glissement).
     """
     type: Literal["contact"]
@@ -134,7 +134,7 @@ class PhysicsConfig(_Section):
 
 
 class OutputConfig(_Section):
-    fields: str | list[str] = "all"  # 'all' ou liste de champs (voir preproc/fields.py)
+    fields: str | list[str] = "all"  # 'all' ou liste de champs (voir fields.py)
     outdir: str
 
     @field_validator("fields", mode="before")
@@ -223,7 +223,7 @@ def load_config(yaml_path: str) -> StudyConfig:
     mesh_path = Path(config.mesh.file)
     if not mesh_path.is_absolute():
         mesh_path = (base_dir / mesh_path).resolve()
-    # Existence vérifiée à la lecture par preproc.exodus.read_exodus (seul lecteur du fichier).
+    # Existence vérifiée à la lecture par exodus_reader.read_exodus (seul lecteur du fichier).
     config.mesh.file = str(mesh_path)
 
     out_path = Path(config.output.outdir)

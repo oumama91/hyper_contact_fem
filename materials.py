@@ -3,7 +3,7 @@ Utilitaires partagés par la loi néo-hookéenne : cinématique et paramètres �
 
 Le projet ne contient qu'une seule loi de comportement (néo-hookéen mixte) : il n'y a donc plus
 de registre, d'interface abstraite ni de fabrique. Ce module se limite aux fonctions réellement
-utilisées par preproc/hyperelasticity.py et preproc/neo_hookean.py.
+utilisées par hyperelasticity.py et neo_hookean.py.
 """
 from __future__ import annotations
 

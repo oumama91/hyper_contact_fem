@@ -24,7 +24,7 @@ Parallélisme (dolfinx 0.11) :
     cellules) ; seuls les sidesets — petits — sont diffusés aux autres rangs, qui ne conservent ni les
     coordonnées ni la connectivité du fichier.
   * toute erreur détectée par un seul rang est relayée à tous avant d'être levée (allgather, même motif
-    que check_same_numbering dans postproc/projection.py) : une levée locale laisserait les autres rangs
+    que check_same_numbering dans projection.py) : une levée locale laisserait les autres rangs
     bloqués dans le collectif suivant (deadlock MPI).
 
 Pièges traités explicitement (une erreur claire vaut mieux qu'un maillage silencieusement faux) :
@@ -48,8 +48,8 @@ from dolfinx import mesh as dm
 from dolfinx.mesh import Mesh, MeshTags, entities_to_geometry
 from mpi4py import MPI
 
-from preproc.config import Config, ExodusMeshConfig
-from preproc.exodus import ExodusMesh, read_exodus
+from config import Config, ExodusMeshConfig
+from exodus_reader import ExodusMesh, read_exodus
 from utils import integrate
 
 logger = logging.getLogger(__name__)

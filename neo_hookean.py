@@ -5,8 +5,8 @@ from typing import Any
 import ufl
 from dolfinx import fem
 
-from preproc.hyperelasticity import HyperelasticMaterial
-from preproc.materials import _check_young_poisson, lame_mu
+from hyperelasticity import HyperelasticMaterial
+from materials import _check_young_poisson, lame_mu
 from utils import SCALAR, Expr
 
 
