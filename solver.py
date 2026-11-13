@@ -58,10 +58,9 @@ class LinearSolver:
     """
     PREFIX = "fea_"
 
-    def __init__(self, comm: MPI.Comm, V: fem.FunctionSpace, config: Config):
+    def __init__(self, comm: MPI.Comm, V: fem.FunctionSpace):
         self.comm = comm
         self.V = V
-        self.rtol = config.solver.rtol  # conservé pour la traçabilité ; sans effet en LU direct
         self.iterations = 0  # itérations KSP cumulées
         self._ksp: PETSc.KSP | None = None
         self._keys: list[str] = []
@@ -271,7 +270,7 @@ def solve_newton(
     n_steps = n_newton = n_cutbacks = n_ls_evaluations = 0
     rel_res = 0.0
 
-    with LinearSolver(comm, forms.V, config) as lin:
+    with LinearSolver(comm, forms.V) as lin:
         work = _NewtonWorkspace.create(forms)
         try:
             dlam_nominal = 1.0 / nw.increments

@@ -4,13 +4,11 @@
 study_name: "O-ring_compression"
 
 mesh:
-  source: "exodus"
   file: "../mesh/O-ring.exo"
   order: 2
   quadrature_degree: 4
 
 material:
-  model: "neo_hookean"
   E: 6.0
   nu: 0.4999               # formulation mixte u-p (Taylor-Hood)
   rho: 1.2e-9
@@ -54,7 +52,6 @@ boundaries:
     probe_tol: 0.2
 
 solver:
-  rtol: 1.0e-8
   newton:
     increments: 1
     max_iter: 30

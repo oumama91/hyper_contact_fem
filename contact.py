@@ -33,7 +33,7 @@ import math
 
 import ufl
 
-from obstacles import CylinderObstacle, Obstacle, PlaneObstacle, SphereObstacle
+from config import CylinderObstacle, Obstacle, PlaneObstacle, SphereObstacle
 from utils import Expr
 
 # Régularisation de la norme du vecteur tangentiel essai (évite une division par zéro exacte en 0 ;

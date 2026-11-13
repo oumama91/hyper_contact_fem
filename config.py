@@ -2,39 +2,41 @@
 Configuration des études : modèles pydantic v2 du YAML, point d'entrée load_config().
 
 Le YAML est validé déclarativement par les modèles ci-dessous (un modèle par section, union
-discriminée sur le type des boundaries), là où l'ancien code enchaînait trois phases manuelles
-(structure / défauts / valeurs). Conventions conservées :
+discriminée sur le type des boundaries, union discriminée sur le type des obstacles).
+Conventions conservées :
 
   * extra="forbid" partout : une faute de frappe dans une clé est rejetée, jamais ignorée ;
-  * types « stricts » au sens de l'ancienne validation manuelle : un nombre est un int ou un float
-    (jamais un booléen, jamais une chaîne comme "20", que le mode laxiste de pydantic accepterait),
-    un entier est un vrai int ; les bornes (> 0, >= 1, ...) sont portées par les champs ;
+  * types natifs pydantic v2 : bornes portées par les champs (PositiveFloat, Field(gt=...)),
+    entiers stricts (StrictInt : ni booléen, ni chaîne comme "20") ;
   * une seule loi de comportement : le néo-hookéen en formulation mixte (u, p) Taylor-Hood
     P_k - P_(k-1), donc mesh.order >= 2 ;
+  * plus aucune clé sans effet : ni source de maillage, ni nom de loi, ni méthode de solveur
+    (le solveur linéaire est un LU direct MUMPS), ni tolérance de Krylov ;
   * après validation, load_config résout les chemins relatifs par rapport au dossier du YAML
     (fichier .exo, outdir) et les réécrit dans le modèle, seul endroit où la configuration est mutée.
 """
 from __future__ import annotations
 
-import warnings
+import math
 from pathlib import Path
 from typing import Annotated, Literal
 
 import yaml
-from pydantic import Field, field_validator, model_validator
-
-from config_types import (
-    IntGe0,
-    IntGe1,
-    Integer,
-    NonNegativeNumber,
-    Number,
-    PositiveNumber,
-    Vec3,
-    _Section,
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    NonNegativeFloat,
+    PositiveFloat,
+    StrictInt,
+    field_validator,
+    model_validator,
 )
-from material import NeoHookean
-from obstacles import CylinderObstacle, Obstacle, PlaneObstacle, SphereObstacle  # noqa: F401 (réexport)
+
+
+class _Section(BaseModel):
+    """Base des sections : aucune clé inconnue n'est tolérée (faute de frappe = erreur)."""
+    model_config = ConfigDict(extra="forbid")
 
 
 # -----------------------------------------------------------------------------
@@ -104,17 +106,14 @@ def resolve_fields(spec: str | list[str] | None) -> tuple[str, ...]:
 # Solveur
 # -----------------------------------------------------------------------------
 class NewtonConfig(_Section):
-    increments: IntGe1 = 1        # nombre d'incréments de charge nominal
-    max_iter: IntGe1 = 25         # itérations de Newton max par incrément
-    rtol: PositiveNumber = 1.0e-6  # résidu libre relatif au résidu initial de l'incrément
-    atol: NonNegativeNumber = 1.0e-10  # résidu libre absolu [N]
-    max_cutbacks: IntGe0 = 8      # réductions de pas successives max
+    increments: StrictInt = Field(default=1, ge=1)   # nombre d'incréments de charge nominal
+    max_iter: StrictInt = Field(default=25, ge=1)    # itérations de Newton max par incrément
+    rtol: PositiveFloat = 1.0e-6                     # résidu libre relatif au résidu initial de l'incrément
+    atol: NonNegativeFloat = 1.0e-10                 # résidu libre absolu [N]
+    max_cutbacks: StrictInt = Field(default=8, ge=0)  # réductions de pas successives max
 
 
 class SolverConfig(_Section):
-    # rtol est conservé dans le schéma : le solveur linéaire est un LU direct MUMPS, qui ne
-    # réalise pas d'itérations de Krylov, mais la clé existe toujours dans les études.
-    rtol: PositiveNumber = 1.0e-8
     newton: NewtonConfig = Field(default_factory=NewtonConfig)
 
 
@@ -122,24 +121,75 @@ class SolverConfig(_Section):
 # Maillage (Exodus II uniquement)
 # -----------------------------------------------------------------------------
 class ExodusMeshConfig(_Section):
-    source: Literal["exodus"] = "exodus"
     file: str
-    order: IntGe1 = 1                      # ordre des éléments (espace de fonctions)
-    quadrature_degree: IntGe1 | None = None  # None = estimation automatique d'UFL
+    order: StrictInt = Field(default=2, ge=2)             # ordre des éléments (Taylor-Hood P_k - P_(k-1))
+    quadrature_degree: StrictInt = Field(default=4, ge=1)  # degré de quadrature du volume
 
 
 # -----------------------------------------------------------------------------
 # Matériau : néo-hookéen mixte uniquement
 # -----------------------------------------------------------------------------
 class MaterialConfig(_Section):
-    model: Literal["neo_hookean"] = "neo_hookean"
-    E: Number
-    nu: Number
-    rho: NonNegativeNumber
+    E: PositiveFloat
+    nu: float = Field(gt=-1.0, le=0.5)  # mixte : nu = 0.5 (incompressible) admis
+    rho: NonNegativeFloat = 0.0
 
-    def params(self) -> dict[str, float | str]:
+    def params(self) -> dict[str, float]:
         """Paramètres transmis à la loi néo-hookéenne (instanciée par forms.py)."""
-        return {"model": self.model, "E": self.E, "nu": self.nu, "rho": self.rho}
+        return {"E": self.E, "nu": self.nu, "rho": self.rho}
+
+
+# -----------------------------------------------------------------------------
+# Obstacles rigides analytiques (absorbés depuis l'ancien module obstacles.py) : trois formes,
+# union discriminée sur 'kind'. Chacune ne décrit QUE la géométrie de l'obstacle rigide (pas la
+# pénalité ni le frottement, portés par ContactBoundary) ; contact.py::gap_and_normal sait
+# calculer jauge signée et normale pour chacune.
+# -----------------------------------------------------------------------------
+Vec3 = Annotated[list[float], Field(min_length=3, max_length=3)]
+
+
+def _check_nonzero_direction(value: list[float], name: str) -> None:
+    """Une normale ou un axe d'obstacle doit être non nul (son sens seul compte, il est normalisé ensuite)."""
+    if math.sqrt(sum(c * c for c in value)) <= 1.0e-12:
+        raise ValueError(f"'{name}' doit être un vecteur non nul")
+
+
+class PlaneObstacle(_Section):
+    """Demi-espace rigide : {x : (x - point)·normal >= 0} est le côté admissible (hors matière rigide)."""
+    kind: Literal["plane"] = "plane"
+    point: Vec3            # un point du plan, en configuration de référence [mm]
+    normal: Vec3           # normale sortante (côté admissible) ; normalisée en interne, sens seul compte
+
+    @model_validator(mode="after")
+    def _check_normal(self) -> PlaneObstacle:
+        _check_nonzero_direction(self.normal, "normal")
+        return self
+
+
+class CylinderObstacle(_Section):
+    """Cylindre rigide infini (axe + rayon). 'outside' : le solide est à l'extérieur (axe = matière rigide) ;
+    'inside' : le solide est à l'intérieur (alésage rigide, matière rigide à l'extérieur du rayon)."""
+    kind: Literal["cylinder"]
+    axis_point: Vec3
+    axis_dir: Vec3
+    radius: PositiveFloat
+    orientation: Literal["outside", "inside"] = "outside"
+
+    @model_validator(mode="after")
+    def _check_axis(self) -> CylinderObstacle:
+        _check_nonzero_direction(self.axis_dir, "axis_dir")
+        return self
+
+
+class SphereObstacle(_Section):
+    """Sphère rigide. 'outside' : le solide est à l'extérieur de la sphère ; 'inside' : cavité sphérique rigide."""
+    kind: Literal["sphere"]
+    center: Vec3
+    radius: PositiveFloat
+    orientation: Literal["outside", "inside"] = "outside"
+
+
+Obstacle = Annotated[PlaneObstacle | CylinderObstacle | SphereObstacle, Field(discriminator="kind")]
 
 
 # -----------------------------------------------------------------------------
@@ -148,13 +198,13 @@ class MaterialConfig(_Section):
 class _BoundaryBase(_Section):
     name: str
     probe_points: list[Vec3] = Field(default_factory=list)
-    probe_tol: PositiveNumber = 0.1
+    probe_tol: PositiveFloat = 0.1
 
 
 class DirichletBoundary(_BoundaryBase):
     type: Literal["dirichlet"]
-    components: list[Integer]
-    value: list[Number]
+    components: list[StrictInt]
+    value: list[float]
 
     @field_validator("components")
     @classmethod
@@ -170,11 +220,6 @@ class DirichletBoundary(_BoundaryBase):
         return self
 
 
-# -----------------------------------------------------------------------------
-# Contact unilatéral contre un obstacle rigide analytique : la géométrie de l'obstacle
-# (PlaneObstacle/CylinderObstacle/SphereObstacle/Obstacle) vit dans obstacles.py (réexportée
-# ci-dessus) ; seule la boundary elle-même (pénalité, frottement) est déclarée ici.
-# -----------------------------------------------------------------------------
 class ContactBoundary(_BoundaryBase):
     """
     Contact unilatéral (pénalité) contre un obstacle rigide analytique, avec frottement de Coulomb
@@ -183,9 +228,9 @@ class ContactBoundary(_BoundaryBase):
     """
     type: Literal["contact"]
     obstacle: Obstacle
-    epsilon_n: PositiveNumber              # pénalité normale [MPa/mm] (= N/mm^3)
-    epsilon_t: PositiveNumber | None = None  # pénalité tangentielle [MPa/mm] ; défaut : epsilon_n
-    friction: NonNegativeNumber = 0.0      # coefficient de Coulomb (0 = contact glissant sans frottement)
+    epsilon_n: PositiveFloat              # pénalité normale [MPa/mm] (= N/mm^3)
+    epsilon_t: PositiveFloat | None = None  # pénalité tangentielle [MPa/mm] ; défaut : epsilon_n
+    friction: NonNegativeFloat = 0.0      # coefficient de Coulomb (0 = contact glissant sans frottement)
 
 
 Boundary = Annotated[DirichletBoundary | ContactBoundary, Field(discriminator="type")]
@@ -220,28 +265,8 @@ class StudyConfig(_Section):
 
     @model_validator(mode="after")
     def _check_cross_rules(self) -> StudyConfig:
-        # Matériau : bornes propres au néo-hookéen (messages français historiques).
-        NeoHookean.check_values(self.material.params())
-
-        # Formulation mixte u-p : Taylor-Hood P_k - P_(k-1) impose l'ordre 2 au minimum.
-        if self.mesh.order < 2:
-            raise ValueError(
-                "mesh.order >= 2 requis pour une loi hyperélastique (formulation mixte u-p : Taylor-Hood P_k - P_(k-1))."
-            )
-
         # Catalogue des champs exportables.
         resolve_fields(self.output.fields)
-
-        # Garde-fou : le terme J^(-2/3) fait exploser le degré de quadrature estimé automatiquement
-        # par UFL si on ne le fixe pas explicitement (assemblage très lent, voire bloquant).
-        if self.mesh.quadrature_degree is None:
-            warnings.warn(
-                "mesh.quadrature_degree n'est pas fourni pour une loi hyperélastique : le degré de quadrature "
-                "estimé automatiquement par UFL (à cause de J^(-2/3)) peut être très élevé et ralentir "
-                "fortement l'assemblage. Il est recommandé de le fixer explicitement "
-                "(voir studies/O-ring_compression.yaml).",
-                stacklevel=2,
-            )
 
         if not self.boundaries:
             raise ValueError("La section 'boundaries' doit être une liste non vide.")

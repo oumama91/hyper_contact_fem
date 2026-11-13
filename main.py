@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 RULE = "-" * 64
 
 # Erreurs attendues (config invalide, maillage introuvable, Newton non convergé, ...) : message
-# clair sans traceback en usage normal. NewtonDiverged (linear_solver.py) est une RuntimeError,
+# clair sans traceback en usage normal. NewtonDiverged (solver.py) est une RuntimeError,
 # déjà couverte, et n'a jamais besoin de remonter jusqu'ici (solve_newton la convertit en RuntimeError
 # après épuisement des réductions de pas).
 # ImportError inclus : dépendance de lecture du maillage absente (netCDF4).
@@ -53,7 +53,7 @@ def print_summary(
     logger.info("\n" + "=" * 64)
     logger.info(f"dolfinx {dolfinx.__version__} / PETSc {PETSc.Sys.getVersion()}")
     logger.info(f"ÉTUDE : {config.study_name}")
-    logger.info(f"Loi de comportement : {config.material.model}")
+    logger.info("Loi de comportement : néo-hookéen (formulation mixte u-p)")
     logger.info(f"Formulation : mixte u-p (Taylor-Hood P{k}-P{k - 1})")
     logger.info(f"Processus MPI : {comm.size}")
     logger.info(RULE)

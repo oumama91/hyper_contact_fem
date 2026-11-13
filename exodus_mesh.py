@@ -48,7 +48,7 @@ from dolfinx import mesh as dm
 from dolfinx.mesh import Mesh, MeshTags, entities_to_geometry
 from mpi4py import MPI
 
-from config import Config, ExodusMeshConfig
+from config import Config
 from exodus_reader import ExodusMesh, read_exodus
 from utils import integrate
 
@@ -365,10 +365,7 @@ def _check_probe_points(domain: dm.Mesh, facets: dict[str, np.ndarray], config: 
 # -----------------------------------------------------------------------------
 def build_mesh(comm: MPI.Comm, config: Config) -> MeshResult:
     """Construit le maillage dolfinx et les tags de facettes depuis un fichier Exodus II (Cubit)."""
-    mesh_cfg = config.mesh
-    if not isinstance(mesh_cfg, ExodusMeshConfig):
-        raise RuntimeError("Backend exodus appelé avec une configuration d'une autre source.")
-    mesh_file = Path(mesh_cfg.file)
+    mesh_file = Path(config.mesh.file)
     data, ex = _read_mesh_data(comm, mesh_file)
     family, degree = CELL_FAMILIES[data.cell_type]
     order = EXODUS_ORDER[data.cell_type]

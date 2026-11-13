@@ -12,8 +12,6 @@ P_iso et la tangente sont obtenus par dérivation automatique (psi_iso est fourn
 """
 from __future__ import annotations
 
-from typing import Any
-
 import ufl
 from dolfinx import fem
 
@@ -30,18 +28,6 @@ def lame_mu(E: float, nu: float) -> float:
     return E / (2.0 * (1.0 + nu))
 
 
-def _check_young_poisson(params: dict[str, Any], nu_max_included: bool) -> None:
-    """E > 0 ; nu dans ]-1, 0.5[ (déplacement pur) ou ]-1, 0.5] (formulation mixte : nu = 0.5 admis)."""
-    if params["E"] <= 0:
-        raise ValueError("material.E doit être > 0.")
-    nu = params["nu"]
-    if nu_max_included:
-        if not (-1.0 < nu <= 0.5):
-            raise ValueError("material.nu doit être dans ]-1, 0.5] (0.5 : incompressible).")
-    elif not (-1.0 < nu < 0.5):
-        raise ValueError("material.nu doit être dans ]-1, 0.5[ (formulation en déplacement : 0.5 est singulier).")
-
-
 class NeoHookean:
     """
     Néo-hookéen, formulation isochore/volumique (même forme qu'Ansys) :
@@ -53,11 +39,7 @@ class NeoHookean:
 
     inv_K: fem.Constant | None = None  # 1/K, défini par la loi ; 0 = incompressible
 
-    @classmethod
-    def check_values(cls, params: dict[str, Any]) -> None:
-        _check_young_poisson(params, nu_max_included=True)
-
-    def __init__(self, domain, params: dict[str, Any]):
+    def __init__(self, domain, params: dict[str, float]):
         E, nu = params["E"], params["nu"]
         self.mu = fem.Constant(domain, SCALAR(lame_mu(E, nu)))
         self.inv_K = fem.Constant(domain, SCALAR(3.0 * (1.0 - 2.0 * nu) / E))
