@@ -15,9 +15,16 @@ chaque composante par ``max(|référence|, plancher)`` avec
 absolu de 1e-16 sur une composante nulle est ainsi vu comme négligeable, alors qu'un vrai
 écart sur la réaction portante reste pénalisé.
 
+Statistiques de champs (Étape 2.0) : ``--fields-run``/``--fields-reference`` comparent en
+plus, pour chaque champ exporté, le minimum, le maximum et la norme l2 nodale produits par
+``capture_metrics.py --fields-out``. Même normalisation, plancher = ``1e-8 * max|statistique
+de référence|`` du champ (les minima peuvent être nuls ou négatifs).
+
 Usage :
     python tools/compare_reference.py --run metrics.json --reference reference/....json
     python tools/compare_reference.py --run metrics.json --reference reference/....json --tol 1e-8
+    python tools/compare_reference.py --run metrics.json --reference reference/....json \
+        --fields-run fields.json --fields-reference reference/..._fields.json
 """
 from __future__ import annotations
 
@@ -28,6 +35,7 @@ from pathlib import Path
 
 COUNTERS = ("increments", "newton_iterations", "cutbacks", "line_search_evaluations")
 SCALARS = ("u_max", "vm_max", "rel_res", "imbalance")
+FIELD_STATS = ("min", "max", "l2")
 
 
 def _load(path: str) -> dict:
@@ -53,12 +61,52 @@ def _row(name: str, run: float, ref: float, error: float, tol: float) -> tuple[s
     return f"{name:<34} {_fmt(ref)}  {_fmt(run)}  {error:>10.3e}  {tol:>9.0e}  {status}", ok
 
 
+def _compare_fields(run: dict, ref: dict, tol: float) -> tuple[list[str], list[str]]:
+    """Lignes et échecs de la comparaison des statistiques de champs (min, max, l2 par champ)."""
+    rows: list[str] = ["--- statistiques de champs (min, max, l2 nodale) ---"]
+    failures: list[str] = []
+    ref_fields = ref["fields"]
+    run_fields = run["fields"]
+
+    if list(ref_fields) != list(run_fields):
+        rows.append(f"champs exportés             référence : {list(ref_fields)}")
+        rows.append(f"                            run       : {list(run_fields)}")
+        failures.append("fields (liste des champs)")
+
+    for name, stats_ref in ref_fields.items():
+        if name not in run_fields:
+            continue
+        stats_run = run_fields[name]
+        scale = max((abs(float(stats_ref[key])) for key in FIELD_STATS), default=0.0)
+        floor = 1.0e-8 * scale if scale > 0.0 else 1.0
+        if int(stats_run.get("components", -1)) != int(stats_ref["components"]):
+            rows.append(
+                f"fields.{name}.components          {int(stats_ref['components']):>15d}  "
+                f"{int(stats_run.get('components', -1)):>15d}  {'0':>10}  {'exact':>9}  ÉCHEC"
+            )
+            failures.append(f"fields.{name}.components")
+        for key in FIELD_STATS:
+            label = f"fields.{name}.{key}"
+            error = _rel_error(stats_run[key], stats_ref[key], floor)
+            line, ok = _row(label, stats_run[key], stats_ref[key], error, tol)
+            rows.append(line)
+            if not ok:
+                failures.append(label)
+    return rows, failures
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Compare un run aux références JSON de l'Étape 1.")
     parser.add_argument("--run", required=True, help="Métriques du run à valider (JSON)")
     parser.add_argument("--reference", required=True, help="Métriques de référence (JSON)")
     parser.add_argument("--tol", type=float, default=None, help="Tolérance (défaut : 1e-12 si MPI=1, sinon 1e-8)")
+    parser.add_argument("--fields-run", default=None, help="Statistiques de champs du run (JSON, optionnel)")
+    parser.add_argument(
+        "--fields-reference", default=None, help="Statistiques de champs de référence (JSON, optionnel)"
+    )
     args = parser.parse_args()
+    if (args.fields_run is None) != (args.fields_reference is None):
+        parser.error("--fields-run et --fields-reference vont ensemble.")
 
     run = _load(args.run)
     ref = _load(args.reference)
@@ -111,6 +159,11 @@ def main() -> int:
             rows.append(line)
             if not ok:
                 failures.append(label)
+
+    if args.fields_run is not None:
+        field_rows, field_failures = _compare_fields(_load(args.fields_run), _load(args.fields_reference), tol)
+        rows.extend(field_rows)
+        failures.extend(field_failures)
 
     print("\n".join(rows))
     print(f"\nPlancher des réactions : {floor:.3e} N (1e-8 x {scale:.6e} N)")

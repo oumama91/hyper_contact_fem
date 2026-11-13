@@ -1,2 +1,6 @@
 __pycache__/
 *.py[cod]
+
+# Sorties de run (régénérées à chaque exécution) : seules les références figées de
+# reference/ sont versionnées.
+results/
