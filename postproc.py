@@ -11,9 +11,9 @@ dont la numérotation commune est vérifiée avant l'écriture.
 Projection nodale : L2 à masse concentrée vers P1 (moyenne pondérée aux sommets), en une seule passe pour
 tous les champs. VM, pression moyenne, J, composantes de contrainte et de déformation sont évalués aux points
 de quadrature ; les valeurs principales (et Tresca, déformation équivalente) sont calculées ensuite par
-diagonalisation des tenseurs nodaux (tensors.py). Les tenseurs sortent en champs 3x3 (9 composantes)
-et les valeurs principales en champs vectoriels : un seul menu ParaView par grandeur.
-Catalogue et conventions : fields.py.
+diagonalisation des tenseurs nodaux (algèbre tensorielle ci-dessous, ancien module tensors.py). Les tenseurs
+sortent en champs 3x3 (9 composantes) et les valeurs principales en champs vectoriels : un seul menu
+ParaView par grandeur. Catalogue et conventions : config.py.
 
 postprocess() enchaîne les étapes suivantes :
     _max_displacement        -> métrique u_max
@@ -21,25 +21,24 @@ postprocess() enchaîne les étapes suivantes :
     project_p1 (projection.py)   -> projection nodale P1 (une passe) puis métrique vm_max
     nodal_columns (projection.py) -> interpolation vers l'ordre du maillage, colonnes nommées
     _export_values            -> valeurs d'export (scalaires, vecteurs, tenseurs, valeurs principales)
-    write_vtx (vtx_export.py) -> écriture VTX
+    write_vtx                -> écriture VTX (ancien module vtx_export.py)
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 import ufl
 from dolfinx import fem
+from dolfinx.io import VTXWriter
 from dolfinx.mesh import Mesh
 from mpi4py import MPI
 
-from config import Config
-from fields import COMPONENTS, resolve_fields
+from config import COMPONENTS, Config, resolve_fields
 from forms import Forms
-from tensors import principal_values, symmetric, von_mises
 from projection import export_spaces, nodal_columns, project_p1
-from vtx_export import write_vtx
-from utils import Expr
+from utils import Expr, ensure_dir
 
 # Champs d'export qui exigent le tenseur des contraintes / des déformations
 STRESS_FIELDS = frozenset({"cauchy_stress", "principal_stress", "tresca"})
@@ -63,6 +62,32 @@ def _max_displacement(comm: MPI.Comm, u_h: fem.Function, gdim: int) -> float:
     return _owned_max(comm, np.linalg.norm(u, axis=1))
 
 
+# -----------------------------------------------------------------------------
+# Algèbre tensorielle nodale (ancien module tensors.py : numpy pur, aucun accès maillage)
+# -----------------------------------------------------------------------------
+def von_mises(sigma: Expr, gdim: int) -> Expr:
+    dev = sigma - ufl.tr(sigma) / 3.0 * ufl.Identity(gdim)
+    return ufl.sqrt(1.5 * ufl.inner(dev, dev))
+
+
+def symmetric(cols: dict[str, np.ndarray], prefix: str) -> np.ndarray:
+    """Assemble les tenseurs symétriques 3x3 nodaux (m, 3, 3) depuis leurs 6 colonnes '<prefix>_xx'..."""
+    m = len(cols[f"{prefix}_xx"])
+    T = np.empty((m, 3, 3))
+    for tag, i, j in COMPONENTS:
+        T[:, i, j] = T[:, j, i] = cols[f"{prefix}_{tag}"]
+    return T
+
+
+def principal_values(T: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Valeurs principales décroissantes (v1 >= v2 >= v3) de tenseurs symétriques nodaux."""
+    w = np.linalg.eigvalsh(T)  # croissant
+    return w[:, 2], w[:, 1], w[:, 0]
+
+
+# -----------------------------------------------------------------------------
+# Post-traitement
+# -----------------------------------------------------------------------------
 def _quadrature_expressions(forms: Forms, wanted: set[str], gdim: int) -> dict[str, Expr]:
     """Expressions UFL scalaires aux points de quadrature : une par colonne interne du post-traitement."""
     sigma = forms.cauchy_ufl()
@@ -118,9 +143,41 @@ class PostprocResult:
     fields: list[str]  # champs effectivement exportés, dans l'ordre d'écriture
 
 
+def write_vtx(
+    comm: MPI.Comm,
+    config: Config,
+    spaces: dict[int, fem.FunctionSpace],
+    u_h: fem.Function,
+    requested: tuple[str, ...],
+    values: dict[str, np.ndarray],
+) -> tuple[str, list[str]]:
+    """Export VTX : le déplacement (vectoriel autonome) en premier, puis les champs demandés."""
+    u_out = fem.Function(spaces[3], name="displacement")
+    u_out.interpolate(u_h)
+    u_out.x.scatter_forward()
+    fields = [u_out]
+    exported = ["displacement"]
+
+    for name in requested:
+        if name == "displacement":
+            continue
+        data = values[name]
+        f = fem.Function(spaces[data.shape[1]], name=name)
+        f.x.array[:] = data.reshape(-1)
+        fields.append(f)
+        exported.append(name)
+
+    outdir = ensure_dir(comm, Path(config.output.outdir))
+
+    vtx_path = outdir / f"{config.study_name}.bp"
+    with VTXWriter(comm, vtx_path, fields, engine="BP4") as w:
+        w.write(0.0)
+    return str(vtx_path), exported
+
+
 def postprocess(comm: MPI.Comm, domain: Mesh, forms: Forms, config: Config) -> PostprocResult:
     """
-    Calcule les champs demandés (output.fields, voir fields.py), extrait les métriques globales
+    Calcule les champs demandés (output.fields, voir config.py), extrait les métriques globales
     et exporte en VTX. 'forms' porte la solution (uh), la loi de comportement et les accès symboliques
     (displacement_ufl, cauchy_ufl), que la formulation soit mixte u-p ou en déplacement seul.
     Retourne un PostprocResult (u_max, vm_max, fichier VTX, champs exportés).

@@ -1,5 +1,5 @@
 """
-Lecture des maillages Exodus II (Cubit) : aucune dépendance à dolfinx (comme fields.py).
+Lecture des maillages Exodus II (Cubit) : aucune dépendance à dolfinx (comme le catalogue de config.py).
 
 Un fichier .exo exporté par Cubit contient tout ce qu'il faut au solveur : coordonnées, maillage et
 regroupements nommés de faces (sidesets). Ce module en extrait ces informations sans les interpréter ;
