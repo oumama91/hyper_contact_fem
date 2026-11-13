@@ -4,7 +4,7 @@ Pourquoi projeter en P1 puis interpoler à l'ordre k du maillage, plutôt qu'une
 masse concentrée directement à l'ordre k ? Sur un tétraèdre P2, l'intégrale
 d'une fonction de base de sommet est nulle (∫φ_sommet dx = 0) : le dénominateur
 concentré s'annulerait. Le P1 est le seul ordre où il reste strictement
-positif. Conséquence assumée : les maxima tirés de cette projection (vm_max)
+positif. Conséquence assumée : les maxima tirés de cette projection (sigma_1_max)
 sont des maxima lissés P1, même sur un maillage P2.
 """
 from __future__ import annotations

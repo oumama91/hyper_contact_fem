@@ -5,7 +5,7 @@ Entrées : deux fichiers JSON de métriques produites par ``tools/capture_metric
 (une référence et le run à valider). Affiche les écarts relatifs et vérifie les tolérances
 du plan de migration :
 
-    * série  : 1e-12 sur les réactions, |u|max, vm_max, et égalité des compteurs ;
+    * série  : 1e-12 sur les réactions, |u|max, sigma_1_max, et égalité des compteurs ;
     * np = 2 : 1e-8 (l'ordre des réductions MPI n'est pas garanti bit à bit).
 
 Les réactions ont des composantes exactement nulles par symétrie et d'autres de l'ordre de
@@ -34,7 +34,7 @@ import math
 from pathlib import Path
 
 COUNTERS = ("increments", "newton_iterations", "cutbacks", "line_search_evaluations")
-SCALARS = ("u_max", "vm_max", "rel_res", "imbalance")
+SCALARS = ("u_max", "sigma_1_max", "rel_res", "imbalance")
 FIELD_STATS = ("min", "max", "l2")
 
 

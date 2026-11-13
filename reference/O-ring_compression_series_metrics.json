@@ -1,7 +1,7 @@
 {
   "mpi_size": 1,
   "u_max": 0.4664172049663108,
-  "vm_max": 0.7537310547729685,
+  "sigma_1_max": 0.15999633992988643,
   "rel_res": 4.564018773083237e-07,
   "increments": 1,
   "newton_iterations": 10,

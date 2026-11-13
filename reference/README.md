@@ -1,7 +1,7 @@
-# Références de non-régression — Étape 1
+# Références de non-régression
 
-Toutes les références ont été générées avec le code de `<OLD>` (`D:\Recherche\FEM`, en
-lecture seule), sans modification de son arborescence ni de son dossier `results/` : le
+Toutes les références ont été initialement générées avec le code de `<OLD>` (`D:\Recherche\FEM`,
+en lecture seule), sans modification de son arborescence ni de son dossier `results/` : le
 fichier YAML de lancement a été copié dans un dossier temporaire et seuls `mesh.file` et
 `output.outdir` y ont été rendus absolus (vers le maillage de `<OLD>` et un dossier
 temporaire de sortie).
@@ -21,12 +21,12 @@ mpiexec -n 2 python main.py <yaml-temporaire-np2>
 ```
 
 Les métriques en précision complète (le résumé console arrondit |u|max à 7 chiffres et
-vm_max à 5) sont produites par `tools/capture_metrics.py`, avec la même séquence d'appels
-que `main._run` :
+sigma_1_max à 4) sont produites par `tools/capture_metrics.py`, avec la même séquence
+d'appels que `main._run` :
 
 ```bash
-python tools/capture_metrics.py <yaml-temporaire> --out reference/....json
-mpiexec -n 2 python tools/capture_metrics.py <yaml-temporaire> --out reference/....json
+python tools/capture_metrics.py <yaml> --out reference/....json
+mpiexec -n 2 python tools/capture_metrics.py <yaml> --out reference/....json
 ```
 
 Toutes les commandes passent par `tools/wsl_run.sh`, qui fixe par défaut
@@ -46,28 +46,47 @@ runs série bit à bit identiques ; la valeur reste surchargeable par l'appelant
 | `O-ring_compression_np2_reactions.csv` | historique des réactions, np = 2 |
 | `O-ring_compression_series_metrics.json` | métriques haute précision, série |
 | `O-ring_compression_np2_metrics.json` | métriques haute précision, np = 2 |
-| `O-ring_compression_series_fields.json` | statistiques des champs exportés, série (Étape 2.0) |
-| `O-ring_compression_np2_fields.json` | statistiques des champs exportés, np = 2 (Étape 2.0) |
+| `O-ring_compression_series_fields.json` | statistiques des champs exportés, série |
+| `O-ring_compression_np2_fields.json` | statistiques des champs exportés, np = 2 |
 
-Seule modification apportée aux journaux bruts : la bannière d'environnement de `<OLD>`,
-qui affichait le nom et la version du paquet de maillage CAO supprimé, a été réduite à
-`dolfinx 0.11.0 / PETSc (3, 25, 6)` pour respecter la décision D5 (aucune occurrence de
-ce nom dans le nouveau dépôt). Le contenu numérique des journaux est inchangé.
+Seule modification apportée aux journaux bruts de l'Étape 1 : la bannière d'environnement de
+`<OLD>`, qui affichait le nom et la version du paquet de maillage CAO supprimé, a été réduite
+à `dolfinx 0.11.0 / PETSc (3, 25, 6)` pour respecter la décision D5 (aucune occurrence de ce
+nom dans le nouveau dépôt).
+
+## Étape 2.5 : réduction des champs (D3) et régénération
+
+L'Étape 2.5 ne change **aucun calcul** : elle réduit la liste des champs exportés à
+`displacement`, `cauchy_stress`, `principal_stress`, `mean_stress` (= p), `strain`
+(Green-Lagrange), `principal_stretch` et `J`. Les champs `von_mises`, `tresca`,
+`equivalent_strain` et `principal_strain` ne sont plus calculés ni exportés.
+
+L'indicateur de contrainte du résumé console n'est plus `vm_max` : c'est la **plus grande
+contrainte principale de Cauchy**, `sigma_1_max`, maximum nodal (projection P1, comme
+l'ancien `vm_max`) de la plus grande valeur propre du tenseur de Cauchy. Choix justifié :
+c'est la traction maximale, grandeur dimensionnante pour un élastomère, elle est déjà
+exportée (`principal_stress`) et ne demande aucun calcul supplémentaire.
+
+`*_metrics.json`, `*_fields.json` et `*.log` ont été régénérés à l'Étape 2.5. Vérification
+faite avant régénération : la solution est inchangée, `u_max`, `rel_res`, `imbalance`, les
+réactions et les statistiques des sept champs conservés sont bit à bit identiques aux
+références de l'Étape 1 (série) ; en np = 2, écarts ≤ 3e-14. Les CSV de réactions ne sont pas
+affectés par D3 et n'ont pas été régénérés.
 
 ## Valeurs de référence (précision complète)
 
 | Grandeur | Série | np = 2 |
 |---|---|---|
-| `u_max` [mm] | 4.664172049663108e-01 | 4.664172049663042e-01 |
-| `vm_max` [MPa] | 7.537310547729685e-01 | 7.537310547729683e-01 |
-| `rel_res` | 4.564018773083237e-07 | 4.564018773111702e-07 |
+| `u_max` [mm] | 4.664172049663108e-01 | 4.664172049663145e-01 |
+| `sigma_1_max` [MPa] | 1.599963399298864e-01 | 1.599963399298864e-01 |
+| `rel_res` | 4.564018773083237e-07 | 4.564018773114682e-07 |
 | incréments | 1 | 1 |
 | itérations Newton | 10 | 10 |
 | cutbacks | 0 | 0 |
-| `imbalance` | 9.950141512499176e-06 | 9.950141513215369e-06 |
+| `imbalance` | 9.950141512499176e-06 | 9.950141513645077e-06 |
 | `total_Fz` [N] | 2.480275894546313e+01 | 2.480275894546309e+01 |
 
-## Statistiques de champs (Étape 2.0)
+## Statistiques de champs
 
 Les fichiers `*_fields.json` figent, pour chaque champ exporté, trois statistiques
 globales calculées sur les valeurs nodales réellement écrites dans le `.bp` :
@@ -82,12 +101,10 @@ le nombre de composantes du champ, ce qui permet de détecter un changement de n
 
 `adios2` n'est pas installé dans `fenicsx-env` et `dolfinx` 0.11 n'expose pas de lecteur VTX :
 les statistiques sont capturées pendant le run, en enveloppant
-`postproc.postproc.write_vtx` dans `tools/capture_metrics.py`. Les valeurs exportées ne sont
-que copiées, jamais réinjectées dans le calcul : les sorties numériques sont inchangées
-(série bit à bit identique au tag `step1-validated`).
+`postproc.write_vtx` dans `tools/capture_metrics.py`. Les valeurs exportées ne sont que
+copiées, jamais réinjectées dans le calcul.
 
-Génération depuis le tag `step1-validated` (le code de production de l'Étape 2.0 est
-identique à celui du tag) :
+Génération (à refaire après toute modification volontaire des sorties) :
 
 ```bash
 python tools/capture_metrics.py studies/O-ring_compression.yaml \
@@ -97,8 +114,6 @@ mpiexec -n 2 python tools/capture_metrics.py studies/O-ring_compression.yaml \
     --out reference/O-ring_compression_np2_metrics.json \
     --fields-out reference/O-ring_compression_np2_fields.json
 ```
-
-Les métriques régénérées sont bit à bit identiques aux références de l'Étape 1.
 
 ## Normalisation des écarts
 
@@ -119,8 +134,8 @@ Les statistiques de champs suivent la même règle, avec un plancher par champ :
 `results/` contient les sorties de chaque exécution (`.bp`, CSV de réactions) et est ignoré
 par git depuis l'Étape 2.0 : aucun fichier de `results/` n'est une référence. Le `.bp` qui y
 figurait avant l'Étape 2.0 n'a pas été copié dans `reference/` : il est entièrement
-reproduit par le run et les grandeurs utiles à la non-régression sont désormais figées sous
-forme de statistiques dans `*_fields.json`.
+reproduit par le run et les grandeurs utiles à la non-régression sont figées sous forme de
+statistiques dans `*_fields.json`.
 
 ## Comparaison
 

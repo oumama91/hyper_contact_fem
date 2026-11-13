@@ -83,7 +83,7 @@ def print_summary(
     logger.info(f"Historique réactions : {csv_path}")
     logger.info(RULE)
     logger.info(f"Déplacement max |u| : {results.u_max:.6e} mm")
-    logger.info(f"Von Mises max (lissé P1) : {results.vm_max:.4e} MPa")
+    logger.info(f"Contrainte principale max (lissé P1) : {results.sigma_1_max:.4e} MPa")
     logger.info(f"Export ParaView : {results.vtx_path}")
     logger.info(f"Champs exportés : {', '.join(results.fields)}")
     logger.info("=" * 64 + "\n")

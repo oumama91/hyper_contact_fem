@@ -4,7 +4,7 @@ Capture haute précision des métriques et des champs d'une étude, pour la non-
 Répète exactement la séquence d'appels de ``main._run`` (configuration, maillage, formes,
 conditions aux limites, solveur de Newton, post-traitement) mais écrit les valeurs en
 précision complète (repr JSON) au lieu de se limiter au résumé console. Les valeurs
-affichées par ``main.py`` sont arrondies (7 chiffres pour |u|max, 5 pour vm_max), ce qui ne
+affichées par ``main.py`` sont arrondies (7 chiffres pour |u|max, 5 pour sigma_1_max), ce qui ne
 permet pas de vérifier les tolérances 1e-12 / 1e-8 du plan de migration.
 
 Statistiques de champs (Étape 2.0) : pour chaque champ exporté, ``--fields-out`` enregistre
@@ -157,7 +157,7 @@ def main() -> int:
     payload = {
         "mpi_size": int(comm.size),
         "u_max": float(results.u_max),
-        "vm_max": float(results.vm_max),
+        "sigma_1_max": float(results.sigma_1_max),
         "rel_res": float(metrics.rel_res),
         "increments": int(metrics.increments),
         "newton_iterations": int(metrics.newton_iterations),
