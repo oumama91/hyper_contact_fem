@@ -1,7 +1,7 @@
 """
 Contact unilatéral (pénalité) contre un obstacle rigide analytique, avec frottement de Coulomb.
 
-Portée de ce premier jalon (voir DESIGN_CONTACT.md) :
+Portée de ce premier jalon :
   * obstacle RIGIDE analytique (plan / cylindre / sphère) : pas de deuxième champ mécanique, juste
     une jauge géométrique g_N(x) et une normale n(x) évaluées symboliquement en position courante
     x = X + u, X = coordonnée de référence (spatiale) ;
@@ -18,8 +18,8 @@ Portée de ce premier jalon (voir DESIGN_CONTACT.md) :
     proportionnel lambda in [0, 1]). Pour un chargement cyclique ou multi-séquence (ex. précharge
     normale puis cisaillement, ou glissement alterné), il faut une vraie plasticité de contact avec
     retour radial INCRÉMENTAL et une variable d'état persistante (traction tangentielle au pas
-    précédent) stockée à chaque point de quadrature — DESIGN_CONTACT.md détaille l'extension
-    (nécessite un espace de fonctions 'Quadrature' et un hook on_increment, à la ReactionHistory).
+    précédent) stockée à chaque point de quadrature : cette extension nécessiterait un espace de
+    fonctions 'Quadrature' et un hook on_increment, à la ReactionHistory.
 
 Le terme de contact est ajouté à la forme résiduelle au même titre qu'un terme interne : comme il
 dépend de uh via g_N et u_t, sa tangente est obtenue gratuitement par ufl.derivative (voir forms.py),
