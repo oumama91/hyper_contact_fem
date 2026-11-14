@@ -11,9 +11,9 @@ dont la numérotation commune est vérifiée avant l'écriture.
 Projection nodale : L2 à masse concentrée vers P1 (moyenne pondérée aux sommets), en une seule passe pour
 tous les champs. Pression moyenne, J, composantes de contrainte et de déformation sont évalués aux points
 de quadrature ; les valeurs principales (et les allongements principaux) sont calculées ensuite par
-diagonalisation des tenseurs nodaux (algèbre tensorielle ci-dessous, ancien module tensors.py). Les tenseurs
+diagonalisation des tenseurs nodaux (algèbre tensorielle ci-dessous). Les tenseurs
 sortent en champs 3x3 (9 composantes) et les valeurs principales en champs vectoriels : un seul menu
-ParaView par grandeur. Catalogue et conventions : config.py (décision D3).
+ParaView par grandeur. Catalogue et conventions : config.py.
 
 postprocess() enchaîne les étapes suivantes :
     _max_displacement        -> métrique u_max
@@ -21,11 +21,11 @@ postprocess() enchaîne les étapes suivantes :
     project_p1 (projection.py)   -> projection nodale P1 (une passe)
     nodal_columns (projection.py) -> interpolation vers l'ordre du maillage, colonnes nommées
     _export_values            -> valeurs d'export (scalaires, vecteurs, tenseurs, valeurs principales)
-    write_vtx                -> écriture VTX (ancien module vtx_export.py)
+    write_vtx                -> écriture VTX
 
 L'indicateur de contrainte du résumé est la plus grande contrainte principale de Cauchy (max de
-sigma_1 sur les nœuds), et non plus von Mises : en hyperélasticité quasi incompressible, sigma_1
-est la grandeur pertinente pour un élastomère (traction maximale), et elle est déjà exportée.
+sigma_1 sur les nœuds) : en hyperélasticité quasi incompressible, sigma_1 est la grandeur pertinente
+pour un élastomère (traction maximale), et elle est déjà exportée.
 """
 from __future__ import annotations
 
@@ -67,7 +67,7 @@ def _max_displacement(comm: MPI.Comm, u_h: fem.Function, gdim: int) -> float:
 
 
 # -----------------------------------------------------------------------------
-# Algèbre tensorielle nodale (ancien module tensors.py : numpy pur, aucun accès maillage)
+# Algèbre tensorielle nodale (numpy pur, aucun accès maillage)
 # -----------------------------------------------------------------------------
 def symmetric(cols: dict[str, np.ndarray], prefix: str) -> np.ndarray:
     """Assemble les tenseurs symétriques 3x3 nodaux (m, 3, 3) depuis leurs 6 colonnes '<prefix>_xx'..."""
@@ -140,7 +140,7 @@ def _export_values(cols: dict[str, np.ndarray], wanted: set[str]) -> dict[str, n
 
 @dataclass(frozen=True)
 class PostprocResult:
-    """Résultat du post-traitement (remplace l'ancien dict à clés)."""
+    """Résultat du post-traitement."""
     u_max: float        # norme de déplacement maximale [mm]
     sigma_1_max: float  # plus grande contrainte principale de Cauchy, lissée P1 [MPa]
     vtx_path: str       # chemin du fichier VTX écrit (ParaView)
@@ -183,7 +183,7 @@ def postprocess(comm: MPI.Comm, domain: Mesh, forms: Forms, config: Config) -> P
     """
     Calcule les champs demandés (output.fields, voir config.py), extrait les métriques globales
     et exporte en VTX. 'forms' porte la solution (uh), la loi de comportement et les accès symboliques
-    (displacement_ufl, cauchy_ufl), que la formulation soit mixte u-p ou en déplacement seul.
+    (displacement_ufl, cauchy_ufl).
     Retourne un PostprocResult (u_max, sigma_1_max, fichier VTX, champs exportés).
     """
     gdim = domain.geometry.dim

@@ -1,9 +1,8 @@
 """
-Comparaison d'un run aux références de non-régression de l'Étape 1.
+Comparaison d'un run aux références de non-régression.
 
 Entrées : deux fichiers JSON de métriques produites par ``tools/capture_metrics.py``
-(une référence et le run à valider). Affiche les écarts relatifs et vérifie les tolérances
-du plan de migration :
+(une référence et le run à valider). Affiche les écarts relatifs et vérifie les tolérances :
 
     * série  : 1e-12 sur les réactions, |u|max, sigma_1_max, et égalité des compteurs ;
     * np = 2 : 1e-8 (l'ordre des réductions MPI n'est pas garanti bit à bit).
@@ -15,7 +14,7 @@ chaque composante par ``max(|référence|, plancher)`` avec
 absolu de 1e-16 sur une composante nulle est ainsi vu comme négligeable, alors qu'un vrai
 écart sur la réaction portante reste pénalisé.
 
-Statistiques de champs (Étape 2.0) : ``--fields-run``/``--fields-reference`` comparent en
+Statistiques de champs : ``--fields-run``/``--fields-reference`` comparent en
 plus, pour chaque champ exporté, le minimum, le maximum et la norme l2 nodale produits par
 ``capture_metrics.py --fields-out``. Même normalisation, plancher = ``1e-8 * max|statistique
 de référence|`` du champ (les minima peuvent être nuls ou négatifs).
@@ -96,7 +95,7 @@ def _compare_fields(run: dict, ref: dict, tol: float) -> tuple[list[str], list[s
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Compare un run aux références JSON de l'Étape 1.")
+    parser = argparse.ArgumentParser(description="Compare un run aux références JSON de non-régression.")
     parser.add_argument("--run", required=True, help="Métriques du run à valider (JSON)")
     parser.add_argument("--reference", required=True, help="Métriques de référence (JSON)")
     parser.add_argument("--tol", type=float, default=None, help="Tolérance (défaut : 1e-12 si MPI=1, sinon 1e-8)")

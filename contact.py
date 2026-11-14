@@ -1,7 +1,7 @@
 """
 Contact unilatéral (pénalité) contre un obstacle rigide analytique, avec frottement de Coulomb.
 
-Portée de ce premier jalon :
+Portée du modèle :
   * obstacle RIGIDE analytique (plan / cylindre / sphère) : pas de deuxième champ mécanique, juste
     une jauge géométrique g_N(x) et une normale n(x) évaluées symboliquement en position courante
     x = X + u, X = coordonnée de référence (spatiale) ;
@@ -105,7 +105,7 @@ def tangential_traction(u: Expr, normal: Expr, p_n: Expr, epsilon_t: float, fric
     u_t = P_t * u
     # Ressort de rappel tangentiel : la traction d'essai s'OPPOSE au glissement u_t (signe négatif).
     # Sans ce signe, le "frottement" pousserait le solide dans le sens du glissement au lieu de le
-    # freiner (vérifié par tests/test_contact_geometry.py sur un cas 0D).
+    # freiner (vérifié par tests/test_contact.py sur un cas 0D).
     t_trial = -epsilon_t * u_t
     reg = _NORM_REG_RELATIVE * epsilon_t
     norm_trial = ufl.sqrt(ufl.inner(t_trial, t_trial) + reg * reg)

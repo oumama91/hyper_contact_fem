@@ -18,7 +18,7 @@ class LocatedBC:
     """Une condition de Dirichlet localisée : composante 'comp' imposée à 'value' sur les dofs 'dofs'."""
     name: str
     comp: int
-    dofs: np.ndarray  # numérotation de V (mixte ou non)
+    dofs: np.ndarray  # numérotation de V
     value: float      # valeur de référence (valeur du YAML ; multipliée par lambda à l'application)
 
 
@@ -62,7 +62,7 @@ class DirichletSet:
     Callable : dirichlet(scale) -> liste de DirichletBC dont les valeurs sont multipliées par 'scale'
     (facteur de charge lambda), donc utilisable directement comme 'bcs_at' par solve_newton.
 
-    'entries' et 'owned' servent au calcul des réactions (dofs dans la numérotation de V, mixte ou non).
+    'entries' et 'owned' servent au calcul des réactions (dofs dans la numérotation de V).
     'names', 'owner' et 'comp_of' sont précalculés une seule fois ICI (et non à chaque incrément dans
     reactions.py) : 'owner[dof]' est l'index dans 'names' de la boundary qui possède 'dof'
     (-1 si non contraint), 'comp_of[dof]' sa composante. Même règle que l'application des BC :

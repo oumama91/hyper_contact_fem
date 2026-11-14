@@ -15,7 +15,7 @@ l'élément basix est porté par une entité de la cellule de référence (somme
 référence de cette entité (sommet, ou milieu d'arête) désigne sans ambiguïté le nœud Exodus occupant la
 même position dans la cellule de référence Exodus. Aucune géométrie du maillage réel n'intervient : le
 résultat est donc insensible à l'orientation et à la courbure des éléments (maillages tournés type
-O-ring compris), et il est vérifié par tests/test_mesher_exodus.py sur un cube HEX8 et HEX20.
+O-ring compris), et il est vérifié par tests/test_exodus.py sur un cube HEX8 et HEX20.
 
 Parallélisme (dolfinx 0.11) :
   * create_mesh reçoit la connectivité d'un seul rang et la distribue ; dupliquer la connectivité sur
@@ -157,7 +157,7 @@ def _compute_order(cell_type: str) -> np.ndarray:
 
 # Permutations calculées à l'import (coût négligeable, résultat indépendant du maillage) :
 # HEX8 = [0,1,3,2,4,5,7,6], HEX20 = [0,1,3,2,4,5,7,6,8,11,12,9,13,10,15,14,16,19,17,18]
-# (valeurs vérifiées par tests/test_mesher_exodus.py).
+# (valeurs vérifiées par tests/test_exodus.py).
 EXODUS_ORDER: dict[str, np.ndarray] = {cell_type: _compute_order(cell_type) for cell_type in CELL_FAMILIES}
 
 

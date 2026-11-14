@@ -1,5 +1,5 @@
 """
-Validation du schéma YAML (Étape 2.3) : clés inconnues ou supprimées, bornes matériau,
+Validation du schéma YAML : clés inconnues, bornes matériau,
 ordre de maillage et degré de quadrature.
 
 Chaque test part d'une configuration minimale valide et n'en modifie qu'un point, de sorte

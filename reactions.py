@@ -14,7 +14,7 @@ from utils import assemble_vec, ensure_dir, owned_size
 
 @dataclass(frozen=True)
 class Reactions:
-    """Réactions d'appui à l'état courant (remplace l'ancien dict à clés)."""
+    """Réactions d'appui à l'état courant."""
     reactions: dict[str, np.ndarray]  # boundary de Dirichlet -> réactions (Fx, Fy, Fz) [N]
     total: np.ndarray                 # somme des réactions [N]
     external: np.ndarray              # somme des forces extérieures appliquées [N]
@@ -26,8 +26,8 @@ def compute_reactions(comm: MPI.Comm, forms: Forms, dirichlet: DirichletSet) -> 
     Réactions d'appui [N] à l'état courant (uh, forms.load) : force exercée PAR l'appui SUR la structure,
     par boundary de Dirichlet et par composante.
 
-    Méthode des forces nodales : R = f_int - f_ext, sommé sur les dofs de déplacement contraints
-    (valable en déplacement pur comme en formulation mixte u-p). Le mapping dof -> (boundary, composante)
+    Méthode des forces nodales : R = f_int - f_ext, sommé sur les dofs de déplacement contraints.
+    Le mapping dof -> (boundary, composante)
     est précalculé une seule fois dans DirichletSet (dirichlet.names / .owner / .comp_of), pas recalculé
     ici à chaque appel : chaque dof contraint est attribué à la dernière boundary déclarée qui le
     contraint (même règle que apply_bcs : 'la dernière déclarée l'emporte'), donc sans double comptage.

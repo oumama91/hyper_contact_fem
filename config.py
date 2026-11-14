@@ -3,15 +3,15 @@ Configuration des études : modèles pydantic v2 du YAML, point d'entrée load_c
 
 Le YAML est validé déclarativement par les modèles ci-dessous (un modèle par section, union
 discriminée sur le type des boundaries, union discriminée sur le type des obstacles).
-Conventions conservées :
+Règles :
 
   * extra="forbid" partout : une faute de frappe dans une clé est rejetée, jamais ignorée ;
   * types natifs pydantic v2 : bornes portées par les champs (PositiveFloat, Field(gt=...)),
     entiers stricts (StrictInt : ni booléen, ni chaîne comme "20") ;
   * une seule loi de comportement : le néo-hookéen en formulation mixte (u, p) Taylor-Hood
     P_k - P_(k-1), donc mesh.order >= 2 ;
-  * plus aucune clé sans effet : ni source de maillage, ni nom de loi, ni méthode de solveur
-    (le solveur linéaire est un LU direct MUMPS), ni tolérance de Krylov ;
+  * chaque clé a un effet : un seul format de maillage (Exodus II), loi et solveur linéaire
+    (LU direct MUMPS) fixes, sans paramètre de Krylov ;
   * après validation, load_config résout les chemins relatifs par rapport au dossier du YAML
     (fichier .exo, outdir) et les réécrit dans le modèle, seul endroit où la configuration est mutée.
 """
@@ -50,12 +50,11 @@ class _Section(BaseModel):
 #     fields: all                                       # tous les champs du catalogue (défaut si absent)
 #     fields: [cauchy_stress, J]                        # sélection ('displacement' est toujours exporté)
 #
-# Décision D3 : export restreint aux grandeurs utiles à un élastomère.
+# Décision de conception : export restreint aux grandeurs utiles à un élastomère.
 #     scalaire   : mean_stress (= p de la formulation mixte), J
 #     vecteur    : displacement (X, Y, Z) ; principal_stress, principal_stretch
 #                  (X, Y, Z = valeur 1, 2, 3 par ordre décroissant ; la « Magnitude » n'a pas de sens)
 #     tenseur    : cauchy_stress, strain (9 composantes d'un tenseur symétrique 3x3)
-# Supprimés : von_mises, tresca, equivalent_strain, principal_strain.
 #
 # Contraintes en MPa, positives en traction. Toutes sont des contraintes de Cauchy (vraies).
 # `strain` est la déformation de Green-Lagrange E = (F^T F - I)/2, `principal_stretch` donne
@@ -65,7 +64,7 @@ class _Section(BaseModel):
 # (suffixe, i, j) des 6 composantes indépendantes d'un tenseur symétrique 3x3 (colonnes internes du post-traitement)
 COMPONENTS = (("xx", 0, 0), ("yy", 1, 1), ("zz", 2, 2), ("xy", 0, 1), ("yz", 1, 2), ("xz", 0, 2))
 
-# Champs disponibles pour toutes les lois, dans l'ordre d'export
+# Champs disponibles, dans l'ordre d'export
 COMMON_FIELDS = ("displacement", "cauchy_stress", "principal_stress", "mean_stress", "strain")
 # Champs qui n'ont de sens qu'en grandes déformations (hyperélasticité)
 HYPERELASTIC_FIELDS = ("principal_stretch", "J")
@@ -134,10 +133,9 @@ class MaterialConfig(_Section):
 
 
 # -----------------------------------------------------------------------------
-# Obstacles rigides analytiques (absorbés depuis l'ancien module obstacles.py) : trois formes,
-# union discriminée sur 'kind'. Chacune ne décrit QUE la géométrie de l'obstacle rigide (pas la
-# pénalité ni le frottement, portés par ContactBoundary) ; contact.py::gap_and_normal sait
-# calculer jauge signée et normale pour chacune.
+# Obstacles rigides analytiques : trois formes, union discriminée sur 'kind'. Chacune ne décrit
+# QUE la géométrie de l'obstacle rigide (pas la pénalité ni le frottement, portés par
+# ContactBoundary) ; contact.py::gap_and_normal sait calculer jauge signée et normale pour chacune.
 # -----------------------------------------------------------------------------
 Vec3 = Annotated[list[float], Field(min_length=3, max_length=3)]
 
@@ -277,7 +275,7 @@ class StudyConfig(_Section):
         return self
 
 
-# Alias historique : les modules annotent leurs paramètres 'config: Config'.
+# Alias utilisé par les annotations des modules ('config: Config').
 Config = StudyConfig
 
 

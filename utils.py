@@ -14,7 +14,7 @@ from petsc4py import PETSc
 
 SCALAR = default_scalar_type
 
-# Alias unique du type des expressions UFL (était redéfini dans 8 modules).
+# Alias unique du type des expressions UFL.
 Expr = ufl.core.expr.Expr
 
 # Options de compilation JIT des formes. -O3 est propre à gcc/clang : on l'omet sous Windows natif (MSVC).

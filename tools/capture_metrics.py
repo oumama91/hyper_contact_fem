@@ -5,9 +5,9 @@ Répète exactement la séquence d'appels de ``main._run`` (configuration, maill
 conditions aux limites, solveur de Newton, post-traitement) mais écrit les valeurs en
 précision complète (repr JSON) au lieu de se limiter au résumé console. Les valeurs
 affichées par ``main.py`` sont arrondies (7 chiffres pour |u|max, 5 pour sigma_1_max), ce qui ne
-permet pas de vérifier les tolérances 1e-12 / 1e-8 du plan de migration.
+permet pas de vérifier les tolérances 1e-12 / 1e-8.
 
-Statistiques de champs (Étape 2.0) : pour chaque champ exporté, ``--fields-out`` enregistre
+Statistiques de champs : pour chaque champ exporté, ``--fields-out`` enregistre
 le minimum, le maximum et la norme l2 des valeurs nodales, réduits sur tous les rangs.
 ``adios2`` n'est pas installé dans ``fenicsx-env`` et ``dolfinx`` 0.11 n'expose pas de
 lecteur VTX : les valeurs sont donc capturées AU MOMENT de l'export, en enveloppant
@@ -36,9 +36,8 @@ import numpy as np
 from mpi4py import MPI
 
 # Le script est lancé par son chemin : la racine du projet (celle de main.py) doit être
-# dans sys.path pour importer preproc / solver / postproc quel que soit le dossier courant.
-# Le dossier courant est prioritaire : il permet de pointer le code d'un autre dépôt
-# (par exemple l'ancien projet) sans déplacer le script.
+# dans sys.path pour importer les modules du projet quel que soit le dossier courant.
+# Le dossier courant reste prioritaire dans sys.path.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path.cwd()))
 

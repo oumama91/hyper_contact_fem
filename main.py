@@ -91,13 +91,13 @@ def print_summary(
 
 def _run(args: argparse.Namespace, comm: MPI.Comm) -> int:
     """Pipeline complet d'une étude, isolé de main() pour limiter le try/except aux erreurs utilisateur."""
-    # 1. Configuration (n'est plus modifiée ensuite)
+    # 1. Configuration (non modifiée ensuite)
     config = load_config(args.study)
 
     # 2. Maillage
     mesh = build_mesh(comm, config)
 
-    # 3. Physique : formulation (loi choisie dans le YAML) et conditions aux limites
+    # 3. Physique : formulation mixte (u, p) et conditions aux limites
     forms = build_forms(mesh.domain, mesh.facet_tags, mesh.boundary_tags, config)
     dirichlet = apply_bcs(forms, mesh.facet_tags, mesh.boundary_tags, config)
 
@@ -125,7 +125,7 @@ def main() -> int:
     try:
         return _run(args, comm)
     except EXPECTED_ERRORS as exc:
-        # Config invalide, CAO/maillage introuvable, Newton non convergé, ... : message clair, sans
+        # Config invalide, maillage introuvable, Newton non convergé, ... : message clair, sans
         # traceback (--verbose le réaffiche intégralement pour le diagnostic).
         logger.error(f"\nERREUR : {exc}\n")
         if args.verbose:

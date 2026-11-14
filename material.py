@@ -1,8 +1,7 @@
 """
 Loi de comportement unique du projet : néo-hookéen en formulation mixte (u, p).
 
-Cinématique (F = I + grad u), paramètres élastiques et loi isochore/volumique sont réunis ici
-(anciens modules materials.py, hyperelasticity.py et neo_hookean.py).
+Cinématique (F = I + grad u), paramètres élastiques et loi isochore/volumique sont réunis ici.
 
 Terme volumétrique de la formulation mixte :
     Π(u, p) = ∫ ψ_iso(F) + p (J - 1) - p² / (2K) dx - travail des charges

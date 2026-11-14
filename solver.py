@@ -28,7 +28,7 @@ STEP_GROWTH = 1.5       # facteur d'agrandissement du pas (plafonné au pas nomi
 
 @dataclass(frozen=True)
 class SolverMetrics:
-    """Métriques d'un solve_newton terminé (remplace l'ancien dict à clés)."""
+    """Métriques d'un solve_newton terminé."""
     method: str            # méthode du solveur linéaire (LU direct MUMPS)
     iterations: int        # itérations KSP cumulées
     newton_iterations: int  # résolutions de Newton cumulées (une par itération convergée)
@@ -111,7 +111,7 @@ class LinearSolver:
 # -----------------------------------------------------------------------------
 # Newton-Raphson
 # -----------------------------------------------------------------------------
-# Recherche linéaire par backtracking sur la norme du résidu libre (§3.6) : pas plein d'abord,
+# Recherche linéaire par backtracking sur la norme du résidu libre : pas plein d'abord,
 # puis pas divisé par deux jusqu'à décroissance stricte, sans descendre sous le pas minimal
 # (en dessous, l'incrément est abandonné au mécanisme de cutback du pilotage de charge).
 LINE_SEARCH_MIN_STEP = 2.0**-6
@@ -120,10 +120,11 @@ LINE_SEARCH_SHRINK = 0.5
 
 @dataclass
 class _NewtonWorkspace:
-    """Matrice et vecteurs de travail créés UNE fois pour tout le calcul (§3.5).
+    """Matrice et vecteurs de travail créés UNE fois pour tout le calcul.
 
-    Avant : assemble_matrix / assemble_vec / duplicate allouaient une Mat et deux Vec à CHAQUE
-    itération de Newton. Ici : même matrice (zeroEntries + réassemblage), mêmes vecteurs.
+    Une seule matrice et cinq vecteurs pour tout le calcul : la matrice est réassemblée en place
+    (zeroEntries) et les vecteurs sont réutilisés, au lieu d'allouer une Mat et deux Vec à CHAQUE
+    itération de Newton.
     """
     matrix: PETSc.Mat      # jacobienne assemblée en place
     residual: PETSc.Vec    # résidu courant, réassemblé en place
