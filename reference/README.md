@@ -1,124 +1,68 @@
 # Références de non-régression
 
-Toutes les références ont été initialement générées avec le code de `<OLD>` (`D:\Recherche\FEM`,
-en lecture seule), sans modification de son arborescence ni de son dossier `results/` : le
-fichier YAML de lancement a été copié dans un dossier temporaire et seuls `mesh.file` et
-`output.outdir` y ont été rendus absolus (vers le maillage de `<OLD>` et un dossier
-temporaire de sortie).
+Ce dossier fige la solution du cas de référence `studies/O-ring_compression.yaml` : quart de
+joint torique, maillage `HEX20`, formulation mixte $P_2$-$P_1$, $E = 6$ MPa, $\nu = 0{,}4999$,
+`quadrature_degree: 4`, contact plan pénalisé sans frottement. Ces fichiers ne sont pas des
+sorties de run : ils constituent la vérité de référence pour les tests et pour
+`tools/compare_reference.py`.
 
-Cas de référence : `studies/O-ring_compression.yaml` (HEX20, P2-P1, E = 6 MPa,
-nu = 0,4999, `quadrature_degree: 4`, contact plan pénalisé sans frottement).
+## Environnement de génération
 
-## Commandes
+Toutes les valeurs ont été produites dans l'environnement conda `fenicsx-env` :
+`dolfinx` 0.11.0, PETSc 3.25.6 avec MUMPS, `mpi4py` 4.1.2, `numpy` 2.5.3, `netCDF4` 1.7.4,
+Python 3.12.
 
-Depuis `<OLD>`, avec le wrapper `tools/wsl_run.sh` du nouveau projet :
-
-```bash
-# Série
-python main.py <yaml-temporaire-serie>
-# np = 2
-mpiexec -n 2 python main.py <yaml-temporaire-np2>
-```
-
-Les métriques en précision complète (le résumé console arrondit |u|max à 7 chiffres et
-sigma_1_max à 4) sont produites par `tools/capture_metrics.py`, avec la même séquence
-d'appels que `main._run` :
-
-```bash
-python tools/capture_metrics.py <yaml> --out reference/....json
-mpiexec -n 2 python tools/capture_metrics.py <yaml> --out reference/....json
-```
-
-Toutes les commandes passent par `tools/wsl_run.sh`, qui fixe par défaut
-`OMP_NUM_THREADS=OPENBLAS_NUM_THREADS=MKL_NUM_THREADS=1`. Sans ce réglage, la factorisation
-MUMPS via un BLAS multi-thread n'est pas reproductible : deux exécutions du **même** code
-OLD divergent déjà de ~1e-15 sur |u|max et sur les composantes de réaction de l'ordre de
-1e-9 N, ce qui rend la tolérance série 1e-12 inatteignable. Un thread par défaut rend les
-runs série bit à bit identiques ; la valeur reste surchargeable par l'appelant.
+Les commandes passent par `tools/wsl_run.sh`, qui fixe par défaut
+`OMP_NUM_THREADS = OPENBLAS_NUM_THREADS = MKL_NUM_THREADS = 1`. Ce réglage est indispensable :
+MUMPS factorise via un BLAS multi-thread dont les réductions ne sont pas déterministes au
+niveau $10^{-15}$ sur $|u|_{\max}$ et de l'ordre de $10^{-9}$ N sur les composantes de
+réaction, ce qui rendrait la tolérance série $10^{-12}$ inatteignable. Avec un seul thread, les
+runs série sont bit à bit identiques. La valeur reste surchargeable par l'appelant.
 
 ## Fichiers
 
 | Fichier | Contenu |
 |---|---|
 | `O-ring_compression_series.log` | sortie console complète, série |
-| `O-ring_compression_np2.log` | sortie console complète, np = 2 |
+| `O-ring_compression_np2.log` | sortie console complète, `np = 2` |
 | `O-ring_compression_series_reactions.csv` | historique des réactions, série |
-| `O-ring_compression_np2_reactions.csv` | historique des réactions, np = 2 |
+| `O-ring_compression_np2_reactions.csv` | historique des réactions, `np = 2` |
 | `O-ring_compression_series_metrics.json` | métriques haute précision, série |
-| `O-ring_compression_np2_metrics.json` | métriques haute précision, np = 2 |
+| `O-ring_compression_np2_metrics.json` | métriques haute précision, `np = 2` |
 | `O-ring_compression_series_fields.json` | statistiques des champs exportés, série |
-| `O-ring_compression_np2_fields.json` | statistiques des champs exportés, np = 2 |
+| `O-ring_compression_np2_fields.json` | statistiques des champs exportés, `np = 2` |
 
-Seule modification apportée aux journaux bruts de l'Étape 1 : la bannière d'environnement de
-`<OLD>`, qui affichait le nom et la version du paquet de maillage CAO supprimé, a été réduite
-à `dolfinx 0.11.0 / PETSc (3, 25, 6)` pour respecter la décision D5 (aucune occurrence de ce
-nom dans le nouveau dépôt).
+Le résumé console arrondit $|u|_{\max}$ à 7 chiffres et `sigma_1_max` à 4 : les métriques en
+précision complète (repr JSON) sont donc produites par `tools/capture_metrics.py`, qui rejoue
+exactement la séquence d'appels de `main._run` et expose les mêmes appels de post-traitement
+que le run normal.
 
-## Étape 2.5 : réduction des champs (D3) et régénération
+## Génération
 
-L'Étape 2.5 ne change **aucun calcul** : elle réduit la liste des champs exportés à
-`displacement`, `cauchy_stress`, `principal_stress`, `mean_stress` (= p), `strain`
-(Green-Lagrange), `principal_stretch` et `J`. Les champs `von_mises`, `tresca`,
-`equivalent_strain` et `principal_strain` ne sont plus calculés ni exportés.
+Depuis la racine du dépôt, avec l'environnement activé :
 
-L'indicateur de contrainte du résumé console n'est plus `vm_max` : c'est la **plus grande
-contrainte principale de Cauchy**, `sigma_1_max`, maximum nodal (projection P1, comme
-l'ancien `vm_max`) de la plus grande valeur propre du tenseur de Cauchy. Choix justifié :
-c'est la traction maximale, grandeur dimensionnante pour un élastomère, elle est déjà
-exportée (`principal_stress`) et ne demande aucun calcul supplémentaire.
+```bash
+# Métriques et champs, série
+python tools/capture_metrics.py studies/O-ring_compression.yaml \
+    --out reference/O-ring_compression_series_metrics.json \
+    --fields-out reference/O-ring_compression_series_fields.json
 
-`*_metrics.json`, `*_fields.json` et `*.log` ont été régénérés à l'Étape 2.5. Vérification
-faite avant régénération : la solution est inchangée, `u_max`, `rel_res`, `imbalance`, les
-réactions et les statistiques des sept champs conservés sont bit à bit identiques aux
-références de l'Étape 1 (série) ; en np = 2, écarts ≤ 3e-14. Les CSV de réactions ne sont pas
-affectés par D3 et n'ont pas été régénérés.
+# Métriques et champs, np = 2
+mpiexec -n 2 python tools/capture_metrics.py studies/O-ring_compression.yaml \
+    --out reference/O-ring_compression_np2_metrics.json \
+    --fields-out reference/O-ring_compression_np2_fields.json
+```
 
-## Étape 3.2 : essai de PETSc SNES (abandonné)
+Les journaux `*.log` proviennent d'un run de `main.py` sur le même YAML (série et `mpiexec -n 2`)
+et les CSV de réactions du fichier `results/<study_name>_reactions.csv` produit par ce run. Ces
+runs doivent également passer par `tools/wsl_run.sh`, pour les threads BLAS.
 
-Prototype testé dans la branche `step3-snes`, supprimée après décision :
-`dolfinx.fem.petsc.NonlinearProblem` (dolfinx 0.11.0, PETSc 3.25.6, LU direct MUMPS) avec la
-boucle externe de pilotage de charge / cutback inchangée, `snes_rtol = 1e-6`, `snes_atol = 1e-10`,
-`snes_stol = 0`, `snes_max_it = 30`, recherches linéaires PETSc `basic`, `bt` et `l2`.
-
-Variante sévère : `studies/O-ring_compression_severe.yaml`, copie du cas de référence dont
-seule la position du plan de contact change (z = 1.8 mm -> z = 0.6 mm, soit un écrasement de
-1.4 mm = 70 % du rayon de la section torique) ; `study_name` est adapté pour ne pas écraser les
-sorties de référence. Amplitude retenue après essais à 1.6, 1.4, 1.2, 1.0, 0.8 et 0.6 mm
-(convergent) puis 0.2 mm (échec du solveur actuel).
-
-| Étude | Solveur | Incréments | Itér. Newton | Cutbacks | `u_max` [mm] | `total_Fz` [N] | Temps [s] |
-|---|---|---|---|---|---|---|---|
-| O-ring | actuel | 1 | 10 | 0 | 4.664172049663e-01 | 2.480275894546e+01 | 82 |
-| O-ring | SNES `basic` | 1 | 10 | 0 | 4.664172049663e-01 | 2.480275894546e+01 | 89 |
-| O-ring | SNES `bt` | 1 | 10 | 0 | 4.664172049663e-01 | 2.480275894546e+01 | 86 |
-| O-ring | SNES `l2` | 1 | 10 | 0 | 4.664172050253e-01 | 2.480275894804e+01 | 87 |
-| sévère | actuel | 1 | 5 | 0 | 1.108784995715e+01 | 1.229537808709e+03 | 47 |
-| sévère | SNES `basic` | 0 | — | 9 | échec (PETSc -4) | — | 164 |
-| sévère | SNES `bt` | 0 | — | ≥ 6 | échec (PETSc -5) | — | > 1800 |
-| sévère | SNES `l2` | 0 | — | ≥ 5 | échec (PETSc -5) | — | > 1800 |
-
-Temps = durée totale du processus (maillage, résolution, post-traitement), série, threads BLAS
-à 1. Les essais `bt` et `l2` sur la variante sévère ont été interrompus après 30 min : chaque
-tentative échouait déjà (raison PETSc -5, norme de résidu non finie) et le cutback rejouait le
-même problème.
-
-Critère (i) satisfait sur l'O-ring : mêmes incréments (1), aucun cutback, et écarts au
-résultat de référence nuls pour `basic` et `bt` (mêmes itérés) et ≤ 1.3e-10 pour `l2`.
-Critère (ii) non satisfait : sur la variante sévère, le solveur actuel converge en 5 itérations
-sans cutback, alors que les trois recherches linéaires SNES échouent. Décision : **abandon de
-SNES**, solveur actuel conservé ; aucun code SNES n'est conservé dans le dépôt.
-
-Remarque sur les cutbacks de cette étude : les conditions de Dirichlet sont nulles, la gravité
-est nulle et la traction de contact n'est pas multipliée par le facteur de charge λ (§3 du plan).
-Le problème résolu est donc indépendant de λ : après un échec, réduire le pas rejoue exactement
-le même problème depuis le même état. Vérifié à z = 0.2 mm : les 8 cutbacks échouent avec le
-même résidu libre (‖R‖ = 1.818e+02), puis l'incrément est abandonné. Une variante sévère obtenue
-par la seule amplitude de compression ne peut donc pas produire de cutback récupérable ; elle
-reste un test de la résolution d'un incrément unique.
+Toute modification volontaire des sorties impose de régénérer ces fichiers : c'est le seul cas
+où `reference/` est mis à jour.
 
 ## Valeurs de référence (précision complète)
 
-| Grandeur | Série | np = 2 |
+| Grandeur | Série | `np = 2` |
 |---|---|---|
 | `u_max` [mm] | 4.664172049663108e-01 | 4.664172049663145e-01 |
 | `sigma_1_max` [MPa] | 1.599963399298864e-01 | 1.599963399298864e-01 |
@@ -131,8 +75,8 @@ reste un test de la résolution d'un incrément unique.
 
 ## Statistiques de champs
 
-Les fichiers `*_fields.json` figent, pour chaque champ exporté, trois statistiques
-globales calculées sur les valeurs nodales réellement écrites dans le `.bp` :
+Les fichiers `*_fields.json` figent, pour chaque champ exporté, trois statistiques globales
+calculées sur les valeurs nodales réellement écrites dans le `.bp` :
 
 | Statistique | Définition |
 |---|---|
@@ -143,42 +87,9 @@ Les nœuds fantômes sont exclus (sinon ils seraient comptés deux fois). `compo
 le nombre de composantes du champ, ce qui permet de détecter un changement de nature du champ.
 
 `adios2` n'est pas installé dans `fenicsx-env` et `dolfinx` 0.11 n'expose pas de lecteur VTX :
-les statistiques sont capturées pendant le run, en enveloppant
-`postproc.write_vtx` dans `tools/capture_metrics.py`. Les valeurs exportées ne sont que
-copiées, jamais réinjectées dans le calcul.
-
-Génération (à refaire après toute modification volontaire des sorties) :
-
-```bash
-python tools/capture_metrics.py studies/O-ring_compression.yaml \
-    --out reference/O-ring_compression_series_metrics.json \
-    --fields-out reference/O-ring_compression_series_fields.json
-mpiexec -n 2 python tools/capture_metrics.py studies/O-ring_compression.yaml \
-    --out reference/O-ring_compression_np2_metrics.json \
-    --fields-out reference/O-ring_compression_np2_fields.json
-```
-
-## Normalisation des écarts
-
-Les réactions ont des composantes exactement nulles par symétrie et d'autres de l'ordre de
-`4e-9` N (bruit numérique) face à `Fz = 24,8` N. Un écart purement relatif composante par
-composante n'aurait aucun sens : `tools/compare_reference.py` normalise donc chaque
-composante par `max(|référence|, plancher)` avec
-`plancher = 1e-8 * max|composante de référence|` sur les réactions, la réaction totale et les
-forces extérieures (soit `2,48e-7` N pour le cas O-ring). Un écart absolu de `1e-16` sur une
-composante nulle est ainsi négligeable, alors qu'un écart sur la réaction portante reste
-pénalisé.
-
-Les statistiques de champs suivent la même règle, avec un plancher par champ :
-`1e-8 * max(|min|, |max|, |l2|)` de la référence, car un minimum peut être nul ou négatif.
-
-## Sorties de run
-
-`results/` contient les sorties de chaque exécution (`.bp`, CSV de réactions) et est ignoré
-par git depuis l'Étape 2.0 : aucun fichier de `results/` n'est une référence. Le `.bp` qui y
-figurait avant l'Étape 2.0 n'a pas été copié dans `reference/` : il est entièrement
-reproduit par le run et les grandeurs utiles à la non-régression sont figées sous forme de
-statistiques dans `*_fields.json`.
+les statistiques sont capturées pendant le run, en enveloppant `postproc.write_vtx` dans
+`tools/capture_metrics.py`. Les valeurs exportées ne sont que copiées, jamais réinjectées dans
+le calcul.
 
 ## Comparaison
 
@@ -190,5 +101,70 @@ python tools/compare_reference.py \
     --fields-reference reference/O-ring_compression_series_fields.json
 ```
 
-La tolérance est choisie automatiquement : `1e-12` si la référence est en série, `1e-8`
-si elle est en np = 2.
+La tolérance est choisie automatiquement d'après le champ `mpi_size` de la référence :
+$10^{-12}$ en série, $10^{-8}$ en `np = 2` (l'ordre des réductions MPI n'est pas garanti bit à
+bit). Les compteurs (incréments, itérations de Newton, cutbacks, évaluations de recherche
+linéaire) sont comparés en égalité stricte. Le script affiche les écarts et renvoie
+`VALIDATION RÉUSSIE` ou `VALIDATION ÉCHOUÉE`.
+
+Les réactions ont des composantes exactement nulles par symétrie et d'autres de l'ordre de
+`4e-9` N (bruit numérique) face à `Fz = 24,8` N. Un écart purement relatif composante par
+composante n'aurait aucun sens : chaque composante est normalisée par `max(|référence|, plancher)`
+avec `plancher = 1e-8 * max|composante de référence|` sur les réactions, la réaction totale et
+les forces extérieures (soit `2,48e-7` N pour le cas O-ring). Un écart absolu de `1e-16` sur une
+composante nulle est ainsi négligeable, alors qu'un écart sur la réaction portante reste
+pénalisé.
+
+Les statistiques de champs suivent la même règle, avec un plancher par champ :
+`1e-8 * max(|min|, |max|, |l2|)` de la référence, car un minimum peut être nul ou négatif.
+
+## Essai de PETSc.SNES : résultats et conclusion
+
+Une variante du solveur a été évaluée : `dolfinx.fem.petsc.NonlinearProblem` (dolfinx 0.11.0,
+PETSc 3.25.6, LU direct MUMPS) avec la boucle externe de pilotage de charge / cutback inchangée,
+`snes_rtol = 1e-6`, `snes_atol = 1e-10`, `snes_stol = 0`, `snes_max_it = 30` et les recherches
+linéaires PETSc `basic`, `bt` et `l2`. Aucun code SNES ne subsiste dans le dépôt : le solveur
+retenu est la boucle de Newton de `solver.py`.
+
+La variante sévère `studies/O-ring_compression_severe.yaml` sert de test de robustesse : copie
+du cas de référence dont seule la position du plan de contact change (z = 1.8 mm → 0.6 mm, soit
+un écrasement de 1.4 mm = 70 % du rayon de la section torique) ; `study_name` est adapté pour ne
+pas écraser les sorties de référence. L'amplitude a été retenue après des essais à 1.6, 1.4,
+1.2, 1.0, 0.8 et 0.6 mm (convergents) puis 0.2 mm (échec du solveur).
+
+| Étude | Solveur | Incréments | Itér. Newton | Cutbacks | `u_max` [mm] | `total_Fz` [N] | Temps [s] |
+|---|---|---|---|---|---|---|---|
+| O-ring | Newton (`solver.py`) | 1 | 10 | 0 | 4.664172049663e-01 | 2.480275894546e+01 | 82 |
+| O-ring | SNES `basic` | 1 | 10 | 0 | 4.664172049663e-01 | 2.480275894546e+01 | 89 |
+| O-ring | SNES `bt` | 1 | 10 | 0 | 4.664172049663e-01 | 2.480275894546e+01 | 86 |
+| O-ring | SNES `l2` | 1 | 10 | 0 | 4.664172050253e-01 | 2.480275894804e+01 | 87 |
+| sévère | Newton (`solver.py`) | 1 | 5 | 0 | 1.108784995715e+01 | 1.229537808709e+03 | 47 |
+| sévère | SNES `basic` | 0 | — | 9 | échec (PETSc -4) | — | 164 |
+| sévère | SNES `bt` | 0 | — | ≥ 6 | échec (PETSc -5) | — | > 1800 |
+| sévère | SNES `l2` | 0 | — | ≥ 5 | échec (PETSc -5) | — | > 1800 |
+
+Temps = durée totale du processus (maillage, résolution, post-traitement), série, threads BLAS
+à 1. Les essais `bt` et `l2` sur la variante sévère ont été interrompus après 30 min : chaque
+tentative échouait déjà (raison PETSc -5, norme de résidu non finie) et le cutback rejouait le
+même problème.
+
+Critère (i) satisfait sur l'O-ring : mêmes incréments (1), aucun cutback, et écarts au résultat
+de référence nuls pour `basic` et `bt` (mêmes itérés) et ≤ 1.3e-10 pour `l2`. Critère (ii) non
+satisfait : sur la variante sévère, le solveur Newton converge en 5 itérations sans cutback,
+alors que les trois recherches linéaires SNES échouent. Conclusion : le solveur de Newton avec
+recherche linéaire par backtracking est conservé.
+
+Remarque sur les cutbacks de cette étude : les conditions de Dirichlet sont nulles, la gravité
+est nulle et la traction de contact n'est pas multipliée par le facteur de charge λ. Le problème
+résolu est donc indépendant de λ : après un échec, réduire le pas rejoue exactement le même
+problème depuis le même état. Vérifié à z = 0.2 mm : les 8 cutbacks échouent avec le même résidu
+libre (‖R‖ = 1.818e+02), puis l'incrément est abandonné. Une variante sévère obtenue par la seule
+amplitude de compression ne peut donc pas produire de cutback récupérable ; elle reste un test
+de la résolution d'un incrément unique.
+
+## Sorties de run
+
+`results/` contient les sorties de chaque exécution (`.bp`, CSV de réactions) et est ignoré par
+git : aucun fichier de `results/` n'est une référence. Le `.bp` n'est pas figé dans ce dossier ;
+il est entièrement reproduit par le run, et les grandeurs utiles à la non-régression sont figées
+sous forme de statistiques dans `*_fields.json`.

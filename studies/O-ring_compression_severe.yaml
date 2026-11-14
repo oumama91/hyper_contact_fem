@@ -1,4 +1,4 @@
-# Variante SÉVÈRE du cas O-ring (Étape 3.2) : copie de studies/O-ring_compression.yaml.
+# Variante SÉVÈRE du cas O-ring : copie de studies/O-ring_compression.yaml.
 # Seule l'amplitude de la compression imposée change : le plan rigide est abaissé de z = 1.8 mm
 # à z = 0.6 mm (écrasement 0.2 mm -> 1.4 mm, soit 70 % du rayon de la section torique).
 # Le nom de l'étude change pour ne pas écraser les sorties du cas de référence.
