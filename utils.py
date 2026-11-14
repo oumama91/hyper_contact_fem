@@ -8,6 +8,7 @@ from pathlib import Path
 import ufl
 from dolfinx import default_scalar_type, fem
 from dolfinx.fem.petsc import assemble_vector
+from dolfinx.la.petsc import create_vector_wrap
 from mpi4py import MPI
 from petsc4py import PETSc
 
@@ -48,11 +49,13 @@ def configure_logging(comm: MPI.Comm, verbose: bool = False) -> None:
 
 def petsc_vec(f: fem.Function) -> PETSc.Vec:
     """
-    Vecteur PETSc partageant la mémoire de 'f'.
-    Point d'accès unique : dolfinx a déprécié 'x.petsc_vec' dans les versions récentes
-    (remplacé par dolfinx.la.petsc.create_vector_wrap) ; la migration se fera ici, une seule fois.
+    Vecteur PETSc partageant la mémoire de 'f' (aucune copie).
+
+    Point d'accès unique : on utilise l'API publique 'dolfinx.la.petsc.create_vector_wrap'
+    (vérifiée dans dolfinx 0.11.0), qui enveloppe le vecteur DOLFINx, plutôt que la propriété
+    'f.x.petsc_vec' (Vec mis en cache dans l'objet Vector, non détruit avec la Function).
     """
-    return f.x.petsc_vec
+    return create_vector_wrap(f.x)
 
 
 def integrate(domain, measure) -> float:
