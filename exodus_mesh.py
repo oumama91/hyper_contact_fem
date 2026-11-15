@@ -181,11 +181,16 @@ def _check_mesh(ex: ExodusMesh) -> None:
     élément fautif, numéroté à partir de 1 comme dans Cubit.
     """
     order = EXODUS_ORDER[ex.cell_type]
+    if ex.n_elems == 0 or ex.n_nodes == 0:
+        raise RuntimeError(
+            f"Maillage vide ({ex.n_elems} élément(s), {ex.n_nodes} nœud(s)) : "
+            "contrôles de géométrie impossibles."
+        )
     corners = ex.points[ex.cells[:, order[:8]]]                      # (n, 8, 3), coins en numérotation basix
     jacobian = np.linalg.det(
         np.stack([corners[:, 1] - corners[:, 0], corners[:, 2] - corners[:, 0], corners[:, 4] - corners[:, 0]], axis=-1)
     )
-    inverted = np.where(jacobian <= 0.0)[0]
+    inverted = np.where(~(jacobian > 0.0))[0]  # rejette aussi NaN et Inf (comparaison fausse pour NaN)
     if inverted.size:
         raise RuntimeError(
             f"{int(inverted.size)} élément(s) de jacobien négatif ou nul (premier : élément {int(inverted[0]) + 1}) : "

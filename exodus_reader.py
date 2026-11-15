@@ -44,9 +44,11 @@ class ExodusMesh:
 # Utilitaires de lecture netCDF
 # -----------------------------------------------------------------------------
 def _var(ds: netCDF4.Dataset, name: str) -> np.ndarray:
-    """Variable netCDF, valeurs manquantes remplacées par NaN le cas échéant."""
+    """Variable netCDF numérique ; une valeur masquée est une donnée manquante rejetée explicitement."""
     values = ds.variables[name][:]
-    return values.filled(np.nan) if np.ma.isMaskedArray(values) else np.asarray(values)
+    if np.ma.getmaskarray(values).any():
+        raise ValueError(f"{Path(ds.filepath()).name} : variable '{name}' masquée (données manquantes).")
+    return np.asarray(values)
 
 
 def _dim_len(ds: netCDF4.Dataset, name: str) -> int:
@@ -109,6 +111,10 @@ def read_exodus(path: str | Path) -> ExodusMesh:
                 f"{path.name} : {n_blocks} blocs d'éléments (multi-matériaux non supporté : "
                 "exporter un seul bloc de volume depuis Cubit)."
             )
+        if n_nodes <= 0:
+            raise ValueError(f"{path.name} : maillage sans nœud (num_nodes = {n_nodes}).")
+        if n_elems <= 0:
+            raise ValueError(f"{path.name} : maillage sans élément (num_elem = {n_elems}).")
         if "connect1" not in ds.variables:
             raise ValueError(f"{path.name} : bloc d'éléments 'connect1' absent.")
 
@@ -122,16 +128,27 @@ def read_exodus(path: str | Path) -> ExodusMesh:
         missing = [c for c in "xyz" if f"coord{c}" not in ds.variables]
         if missing:
             raise ValueError(f"{path.name} : coordonnées {missing} absentes du fichier.")
-        points = np.ascontiguousarray(
-            np.column_stack([np.asarray(_var(ds, f"coord{c}"), dtype=np.float64) for c in "xyz"]),
-            dtype=np.float64,
-        )
+        coords = [np.asarray(_var(ds, f"coord{c}"), dtype=np.float64) for c in "xyz"]
+        if any(coord.ndim != 1 for coord in coords) or len({coord.shape[0] for coord in coords}) != 1:
+            raise ValueError(
+                f"{path.name} : coordonnées de dimensions incohérentes "
+                f"({', '.join(str(coord.shape) for coord in coords)})."
+            )
+        points = np.ascontiguousarray(np.column_stack(coords), dtype=np.float64)
         if points.shape[0] != n_nodes:
             raise ValueError(f"{path.name} : {points.shape[0]} nœuds lus pour 'num_nodes' = {n_nodes}.")
+        if not np.isfinite(points).all():
+            raise ValueError(f"{path.name} : coordonnées non finies (NaN ou Inf).")
 
         cells = np.ascontiguousarray(np.asarray(_var(ds, "connect1"), dtype=np.int64) - 1, dtype=np.int64)
         if cells.ndim != 2 or cells.shape[0] != n_elems:
             raise ValueError(f"{path.name} : connectivité de forme {cells.shape} inattendue.")
+        n_per_elem = {"HEX8": 8, "HEX20": 20}[cell_type]
+        if cells.shape[1] != n_per_elem:
+            raise ValueError(
+                f"{path.name} : connectivité de {cells.shape[1]} nœuds par élément "
+                f"(attendu {n_per_elem} pour {cell_type})."
+            )
         if cells.min() < 0 or cells.max() >= n_nodes:
             raise ValueError(f"{path.name} : connectivité hors bornes (nœuds 1..{n_nodes}).")
 
@@ -155,7 +172,7 @@ def read_exodus(path: str | Path) -> ExodusMesh:
                 raise ValueError(f"{path.name} : sideset '{name}' défini deux fois.")
             elems = np.ascontiguousarray(np.asarray(_var(ds, f"elem_ss{s}"), dtype=np.int64) - 1, dtype=np.int64)
             sides = np.ascontiguousarray(np.asarray(_var(ds, f"side_ss{s}"), dtype=np.int64), dtype=np.int64)
-            if elems.shape != sides.shape:
+            if elems.ndim != 1 or sides.ndim != 1 or elems.shape != sides.shape:
                 raise ValueError(f"{path.name} : sideset '{name}' : listes de longueurs différentes.")
             if elems.size and (elems.min() < 0 or elems.max() >= n_elems):
                 raise ValueError(f"{path.name} : sideset '{name}' référence un élément hors bornes.")
