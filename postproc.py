@@ -29,6 +29,7 @@ pour un élastomère (traction maximale), et elle est déjà exportée.
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -47,6 +48,11 @@ from utils import Expr, ensure_dir
 # Champs d'export qui exigent le tenseur des contraintes / des déformations
 STRESS_FIELDS = frozenset({"cauchy_stress", "principal_stress"})
 STRAIN_FIELDS = frozenset({"strain", "principal_stretch"})
+
+# Point d'observation optionnel de l'instrumentation (tools/capture_metrics.py) : il reçoit le
+# déplacement RÉELLEMENT exporté (u_out après interpolation), jamais réinjecté dans le calcul.
+# None en usage normal : aucune instruction numérique supplémentaire n'est exécutée.
+displacement_observer: Callable[[fem.Function], None] | None = None
 
 
 def _owned_rows(f: fem.Function, n_cols: int) -> np.ndarray:
@@ -160,6 +166,8 @@ def write_vtx(
     u_out = fem.Function(spaces[3], name="displacement")
     u_out.interpolate(u_h)
     u_out.x.scatter_forward()
+    if displacement_observer is not None:
+        displacement_observer(u_out)  # instrumentation de capture : ne modifie ni u_out ni l'export
     fields = [u_out]
     exported = ["displacement"]
 

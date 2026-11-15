@@ -12,7 +12,9 @@ le minimum, le maximum et la norme l2 des valeurs nodales, réduits sur tous les
 ``adios2`` n'est pas installé dans ``fenicsx-env`` et ``dolfinx`` 0.11 n'expose pas de
 lecteur VTX : les valeurs sont donc capturées AU MOMENT de l'export, en enveloppant
 ``postproc.write_vtx`` (les valeurs nodales écrites dans le .bp sont copiées, pas
-modifiées). Cette instrumentation ne change ni les calculs ni les fichiers de sortie.
+modifiées). Le déplacement capturé est ``u_out``, le champ interpolé effectivement écrit
+(pas ``u_h``, son entrée). Cette instrumentation ne change ni les calculs ni les fichiers
+de sortie.
 
 Conventions des statistiques : min/max portent sur toutes les composantes nodales du champ
 (composantes confondues, donc sans signification géométrique pour un vecteur ou un tenseur),
@@ -58,22 +60,26 @@ class _FieldCapture:
     def __init__(self) -> None:
         self.requested: tuple[str, ...] = ()
         self.values: dict[str, np.ndarray] = {}
-        self.u_h = None
+        self.u_out = None
         self.spaces: dict = {}
+
+    def record_displacement(self, u_out) -> None:
+        """Reçoit de write_vtx le déplacement interpolé réellement exporté."""
+        self.u_out = u_out
 
 
 def _install_field_capture(capture: _FieldCapture):
-    """Enveloppe postproc.write_vtx : copie ses arguments, puis délègue à l'original."""
+    """Enveloppe postproc.write_vtx et observe le déplacement après interpolation."""
     original = pp.write_vtx
 
     def wrapper(comm, config, spaces, u_h, requested, values):
         capture.requested = tuple(requested)
         capture.values = {name: np.array(val, dtype=np.float64, copy=True) for name, val in values.items()}
-        capture.u_h = u_h
         capture.spaces = spaces
         return original(comm, config, spaces, u_h, requested, values)
 
     pp.write_vtx = wrapper
+    pp.displacement_observer = capture.record_displacement
 
 
 def _field_statistics(comm: MPI.Comm, flat: np.ndarray, n_cols: int, n_own: int) -> dict[str, float]:
@@ -97,14 +103,14 @@ def _field_statistics(comm: MPI.Comm, flat: np.ndarray, n_cols: int, n_own: int)
 
 def _exported_field_statistics(comm: MPI.Comm, capture: _FieldCapture) -> dict[str, dict[str, float]]:
     """Statistiques de chaque champ exporté, dans l'ordre d'écriture du VTX."""
-    u_h = capture.u_h
-    if u_h is None:  # inatteignable : write_vtx a été appelé par postprocess
+    u_out = capture.u_out
+    if u_out is None:  # inatteignable : write_vtx a été appelé par postprocess
         raise RuntimeError("Aucune valeur de champ capturée : write_vtx n'a pas été appelé.")
-    u_space = u_h.function_space
+    u_space = u_out.function_space
     gdim = u_space.mesh.geometry.dim
     stats = {
         "displacement": _field_statistics(
-            comm, u_h.x.array, gdim, u_space.dofmap.index_map.size_local
+            comm, u_out.x.array, gdim, u_space.dofmap.index_map.size_local
         )
     }
     for name in capture.requested:
