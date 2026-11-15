@@ -57,7 +57,8 @@ def _owned_rows(f: fem.Function, n_cols: int) -> np.ndarray:
 
 def _owned_max(comm: MPI.Comm, values: np.ndarray) -> float:
     """Maximum global d'un tableau 1D de valeurs possédées (réduit sur tous les rangs)."""
-    return comm.allreduce(float(np.max(values)) if len(values) else 0.0, op=MPI.MAX)
+    # Neutre d'un maximum : -inf (et non 0), sinon un rang sans valeur relèverait un maximum négatif à 0.
+    return comm.allreduce(float(np.max(values)) if len(values) else -np.inf, op=MPI.MAX)
 
 
 def _max_displacement(comm: MPI.Comm, u_h: fem.Function, gdim: int) -> float:
