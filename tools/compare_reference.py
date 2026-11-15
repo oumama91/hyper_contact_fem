@@ -109,6 +109,17 @@ def main() -> int:
 
     run = _load(args.run)
     ref = _load(args.reference)
+
+    print(f"Référence : {Path(args.reference).name} (MPI = {ref['mpi_size']})")
+    print(f"Run       : {Path(args.run).name} (MPI = {run.get('mpi_size', '?')})")
+    # La tolérance dépend de la référence : un run d'une autre taille MPI n'est pas comparable.
+    if run.get("mpi_size") != ref["mpi_size"]:
+        print(
+            f"\nVALIDATION ÉCHOUÉE : mpi_size du run ({run.get('mpi_size', '?')}) "
+            f"différent de celui de la référence ({ref['mpi_size']})."
+        )
+        return 1
+
     tol = args.tol if args.tol is not None else (1.0e-12 if int(ref["mpi_size"]) == 1 else 1.0e-8)
 
     # Échelle des réactions : plus grande composante de référence (réactions + total + forces extérieures).
@@ -119,17 +130,22 @@ def main() -> int:
         scale = max(scale, max((abs(float(c)) for c in components), default=0.0))
     floor = 1.0e-8 * scale if scale > 0.0 else 1.0
 
+    # Plancher des scalaires : même mécanisme que les réactions et les champs, mais appliqué
+    # seulement quand la référence est exactement nulle. Pour une référence non nulle, le
+    # dénominateur reste |référence| et l'écart est strictement celui d'avant.
+    scalar_scale = max((abs(float(ref[key])) for key in SCALARS), default=0.0)
+    scalar_floor = 1.0e-8 * scalar_scale if scalar_scale > 0.0 else 1.0
+
     rows: list[str] = []
     failures: list[str] = []
 
-    print(f"Référence : {Path(args.reference).name} (MPI = {ref['mpi_size']})")
-    print(f"Run       : {Path(args.run).name} (MPI = {run.get('mpi_size', '?')})")
     print(f"Tolérance : {tol:.0e}\n")
     print(f"{'Grandeur':<34} {'référence':>15}  {'run':>15}  {'écart rel.':>10}  {'tol.':>9}  statut")
 
     rows.append("--- scalaires globaux ---")
     for key in SCALARS:
-        line, ok = _row(key, run[key], ref[key], _rel_error(run[key], ref[key]), tol)
+        key_floor = scalar_floor if float(ref[key]) == 0.0 else 0.0
+        line, ok = _row(key, run[key], ref[key], _rel_error(run[key], ref[key], key_floor), tol)
         rows.append(line)
         if not ok:
             failures.append(key)
@@ -142,8 +158,25 @@ def main() -> int:
             failures.append(key)
 
     rows.append("--- réactions [N] (référence, run, écart) ---")
-    for name, vec_ref in ref["reactions"].items():
-        for comp, (a, b) in enumerate(zip(vec_ref, run["reactions"][name], strict=True)):
+    ref_reactions = ref["reactions"]
+    run_reactions = run["reactions"]
+    for name in ref_reactions:
+        if name not in run_reactions:
+            rows.append(f"reactions.{name:<22} absente du run")
+            failures.append(f"reactions.{name} (absente du run)")
+    for name in run_reactions:
+        if name not in ref_reactions:
+            rows.append(f"reactions.{name:<22} absente de la référence")
+            failures.append(f"reactions.{name} (absente de la référence)")
+    for name, vec_ref in ref_reactions.items():
+        if name not in run_reactions:
+            continue
+        vec_run = run_reactions[name]
+        if len(vec_run) != len(vec_ref):
+            rows.append(f"reactions.{name:<22} longueur {len(vec_run)} != {len(vec_ref)} (référence)")
+            failures.append(f"reactions.{name} (longueur)")
+            continue
+        for comp, (a, b) in enumerate(zip(vec_ref, vec_run, strict=True)):
             label = f"reactions.{name}[{comp}]"
             error = _rel_error(b, a, floor)
             line, ok = _row(label, b, a, error, tol)
@@ -151,7 +184,13 @@ def main() -> int:
             if not ok:
                 failures.append(label)
     for key in ("reaction_total", "external"):
-        for comp, (a, b) in enumerate(zip(ref[key], run[key], strict=True)):
+        vec_ref = ref[key]
+        vec_run = run[key]
+        if len(vec_run) != len(vec_ref):
+            rows.append(f"{key:<34} longueur {len(vec_run)} != {len(vec_ref)} (référence)")
+            failures.append(f"{key} (longueur)")
+            continue
+        for comp, (a, b) in enumerate(zip(vec_ref, vec_run, strict=True)):
             label = f"{key}[{comp}]"
             error = _rel_error(b, a, floor)
             line, ok = _row(label, b, a, error, tol)
