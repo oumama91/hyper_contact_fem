@@ -57,7 +57,8 @@ class NewtonDiverged(RuntimeError):
 class LinearSolver:
     """
     Contexte qui configure un KSP (préfixe 'fea_') pour résoudre A du = b en LU direct MUMPS,
-    et retire les options globales PETSc à la sortie (succès ou échec), pour ne pas contaminer
+    et restaure à la sortie (succès ou échec) les options globales PETSc qu'il a modifiées :
+    une valeur préexistante est rétablie, une clé absente est retirée, pour ne pas contaminer
     une étude suivante.
 
     La tangente de la formulation mixte (u, p) est de type point-selle, indéfinie : un solveur
@@ -70,12 +71,14 @@ class LinearSolver:
         self.V = V
         self.iterations = 0  # itérations KSP cumulées
         self._ksp: PETSc.KSP | None = None
-        self._keys: list[str] = []
+        self._saved: dict[str, str | None] = {}  # option préexistante, None si la clé était absente
 
     def _set(self, name: str, value: str) -> None:
         key = f"{self.PREFIX}{name}"
-        PETSc.Options()[key] = value
-        self._keys.append(key)
+        opts = PETSc.Options()
+        if key not in self._saved:  # mémorise l'état AVANT la première écriture de ce contexte
+            self._saved[key] = opts[key] if key in opts else None
+        opts[key] = value
 
     def __enter__(self) -> Self:
         try:
@@ -96,21 +99,27 @@ class LinearSolver:
 
     def close(self) -> None:
         opts = PETSc.Options()
-        for key in self._keys:
-            opts.delValue(key)
-        self._keys = []
+        for key, previous in self._saved.items():
+            if previous is None:
+                opts.delValue(key)
+            else:
+                opts[key] = previous
+        self._saved = {}
         if self._ksp is not None:
             self._ksp.destroy()
         self._ksp = None
 
     def solve(self, A: PETSc.Mat, b: PETSc.Vec, x: PETSc.Vec) -> None:
+        ksp = self._ksp
+        if ksp is None:
+            raise RuntimeError("LinearSolver.solve() appelé hors du contexte 'with' : KSP non initialisé.")
         # setOperators est appelé à chaque résolution : c'est lui qui signale les nouvelles
         # valeurs (la factorisation LU est alors refaite).
-        self._ksp.setOperators(A)
+        ksp.setOperators(A)
         x.zeroEntries()  # point de départ déterministe
-        self._ksp.solve(b, x)
-        reason = self._ksp.getConvergedReason()
-        self.iterations += self._ksp.getIterationNumber()
+        ksp.solve(b, x)
+        reason = ksp.getConvergedReason()
+        self.iterations += ksp.getIterationNumber()
         if reason < 0:
             raise NewtonDiverged(f"solveur linéaire non convergé (raison PETSc = {reason})")
 
