@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import ufl
 from dolfinx import fem
+from dolfinx.mesh import Mesh
 
 from utils import SCALAR, Expr
 
@@ -36,9 +37,9 @@ class NeoHookean:
     Paramètres YAML : E, nu -> mu = E / (2(1+nu)), 1/K = 3 (1 - 2 nu) / E (nu = 0.5 : 1/K = 0).
     """
 
-    inv_K: fem.Constant | None = None  # 1/K, défini par la loi ; 0 = incompressible
+    inv_K: fem.Constant  # 1/K, défini par la loi ; 0 = incompressible
 
-    def __init__(self, domain, params: dict[str, float]):
+    def __init__(self, domain: Mesh, params: dict[str, float]):
         E, nu = params["E"], params["nu"]
         self.mu = fem.Constant(domain, SCALAR(lame_mu(E, nu)))
         self.inv_K = fem.Constant(domain, SCALAR(3.0 * (1.0 - 2.0 * nu) / E))

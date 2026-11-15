@@ -7,8 +7,8 @@ from pathlib import Path
 import numpy as np
 from mpi4py import MPI
 
-from forms import Forms
 from dirichlet import DirichletSet
+from forms import Forms
 from utils import assemble_vec, ensure_dir, owned_size
 
 

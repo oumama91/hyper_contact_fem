@@ -118,10 +118,9 @@ def test_curved_obstacle_gap_and_normal(obstacle, point, expected_gap, expected_
 
 
 def test_friction_opposes_sliding_below_cone() -> None:
-    x = ufl.SpatialCoordinate(MESH)
     u = ufl.as_vector([0.01, 0.0, 0.0])
     normal = ufl.as_vector([0.0, 0.0, 1.0])
-    t_t = tangential_traction(u, normal, p_n=100.0, epsilon_t=1.0e3, friction=0.3, gdim=3)
+    t_t = tangential_traction(u, normal, p_n=ufl.as_ufl(100.0), epsilon_t=1.0e3, friction=0.3, gdim=3)
     # t_essai = -epsilon_t u_t = -10 e_x ; ||t_essai|| = 10 < mu p_N = 30 : pas de glissement
     assert evaluate(t_t, (0.5, 0.5, 0.5)) == pytest.approx([-10.0, 0.0, 0.0])
 
@@ -129,7 +128,7 @@ def test_friction_opposes_sliding_below_cone() -> None:
 def test_friction_saturates_on_coulomb_cone() -> None:
     u = ufl.as_vector([0.1, 0.0, 0.0])
     normal = ufl.as_vector([0.0, 0.0, 1.0])
-    t_t = tangential_traction(u, normal, p_n=100.0, epsilon_t=1.0e3, friction=0.3, gdim=3)
+    t_t = tangential_traction(u, normal, p_n=ufl.as_ufl(100.0), epsilon_t=1.0e3, friction=0.3, gdim=3)
     # t_essai = -100 e_x ; ||t_essai|| = 100 > 30 : retour radial, ||t_T|| = mu p_N = 30
     assert evaluate(t_t, (0.5, 0.5, 0.5)) == pytest.approx([-30.0, 0.0, 0.0])
 
@@ -137,5 +136,5 @@ def test_friction_saturates_on_coulomb_cone() -> None:
 def test_zero_friction_gives_zero_traction() -> None:
     u = ufl.as_vector([0.1, 0.0, 0.0])
     normal = ufl.as_vector([0.0, 0.0, 1.0])
-    t_t = tangential_traction(u, normal, p_n=100.0, epsilon_t=1.0e3, friction=0.0, gdim=3)
+    t_t = tangential_traction(u, normal, p_n=ufl.as_ufl(100.0), epsilon_t=1.0e3, friction=0.0, gdim=3)
     assert evaluate(t_t, (0.5, 0.5, 0.5)) == pytest.approx([0.0, 0.0, 0.0])

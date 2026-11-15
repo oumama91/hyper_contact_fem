@@ -33,7 +33,13 @@ import math
 
 import ufl
 
-from config import CylinderObstacle, Obstacle, PlaneObstacle, SphereObstacle
+from config import (
+    ContactBoundary,
+    CylinderObstacle,
+    Obstacle,
+    PlaneObstacle,
+    SphereObstacle,
+)
 from utils import Expr
 
 # Régularisation de la norme du vecteur tangentiel essai (évite une division par zéro exacte en 0 ;
@@ -114,7 +120,7 @@ def tangential_traction(u: Expr, normal: Expr, p_n: Expr, epsilon_t: float, fric
     return factor * t_trial
 
 
-def contact_traction(u: Expr, x: Expr, bnd, gdim: int) -> Expr:
+def contact_traction(u: Expr, x: Expr, bnd: ContactBoundary, gdim: int) -> Expr:
     """
     Traction de contact t_c = p_N(g_N) * n + t_T, exercée par l'obstacle rigide SUR le solide
     (direction n : pousse le solide hors de la matière rigide). 'bnd' : config.ContactBoundary.

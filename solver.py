@@ -4,10 +4,17 @@ import logging
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Self
 
 import numpy as np
 from dolfinx import fem
-from dolfinx.fem.petsc import apply_lifting, assemble_matrix, create_matrix, create_vector, set_bc
+from dolfinx.fem.petsc import (
+    apply_lifting,
+    assemble_matrix,
+    create_matrix,
+    create_vector,
+    set_bc,
+)
 from mpi4py import MPI
 from petsc4py import PETSc
 
@@ -65,12 +72,12 @@ class LinearSolver:
         self._ksp: PETSc.KSP | None = None
         self._keys: list[str] = []
 
-    def _set(self, name: str, value: str | int | float) -> None:
+    def _set(self, name: str, value: str) -> None:
         key = f"{self.PREFIX}{name}"
         PETSc.Options()[key] = value
         self._keys.append(key)
 
-    def __enter__(self) -> LinearSolver:
+    def __enter__(self) -> Self:
         try:
             self._set("ksp_type", "preonly")
             self._set("pc_type", "lu")
@@ -173,7 +180,7 @@ def _newton_increment(
     uh = forms.uh
     x = petsc_vec(uh)
 
-    def lift(b) -> None:
+    def lift(b: PETSc.Vec) -> None:
         apply_lifting(b, [forms.jacobian], bcs=[bcs], x0=[x], alpha=-1.0)
 
     def assemble_residual(*, lifted: bool) -> None:

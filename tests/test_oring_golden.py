@@ -33,6 +33,7 @@ def test_oring_matches_reference(tmp_path: Path) -> None:
             str(fields),
         ],
         cwd=ROOT,
+        check=False,
         capture_output=True,
         text=True,
     )
@@ -52,6 +53,7 @@ def test_oring_matches_reference(tmp_path: Path) -> None:
             f"{REFERENCE}_fields.json",
         ],
         cwd=ROOT,
+        check=False,
         capture_output=True,
         text=True,
     )

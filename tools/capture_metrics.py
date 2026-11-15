@@ -42,12 +42,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path.cwd()))
 
 import postproc as pp  # noqa: E402
-from postproc import postprocess  # noqa: E402
-from reactions import ReactionHistory  # noqa: E402
 from config import load_config  # noqa: E402
 from dirichlet import apply_bcs  # noqa: E402
-from forms import build_forms  # noqa: E402
 from exodus_mesh import build_mesh  # noqa: E402
+from forms import build_forms  # noqa: E402
+from postproc import postprocess  # noqa: E402
+from reactions import ReactionHistory  # noqa: E402
 from solver import solve_newton  # noqa: E402
 from utils import configure_logging  # noqa: E402
 

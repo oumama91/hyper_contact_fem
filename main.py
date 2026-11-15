@@ -10,9 +10,9 @@ from mpi4py import MPI
 from petsc4py import PETSc
 
 from config import Config, load_config
-from forms import Forms, build_forms
 from dirichlet import apply_bcs
 from exodus_mesh import MeshResult, build_mesh
+from forms import Forms, build_forms
 from postproc import PostprocResult, postprocess
 from reactions import ReactionHistory
 from solver import SolverMetrics, solve_newton

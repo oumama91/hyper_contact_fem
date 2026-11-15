@@ -11,7 +11,7 @@ from dolfinx.mesh import Mesh, MeshTags
 from config import Config, ContactBoundary
 from contact import contact_traction
 from material import NeoHookean
-from utils import Expr, JIT_OPTIONS, SCALAR, owned_size
+from utils import JIT_OPTIONS, SCALAR, Expr, owned_size
 
 
 @dataclass
