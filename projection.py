@@ -1,11 +1,9 @@
 """Projection nodale P1 (L2 à masse concentrée) et espaces d'export autonomes communs à tous les champs.
 
-Pourquoi projeter en P1 puis interpoler à l'ordre k du maillage, plutôt qu'une
-masse concentrée directement à l'ordre k ? Sur un tétraèdre P2, l'intégrale
-d'une fonction de base de sommet est nulle (∫φ_sommet dx = 0) : le dénominateur
-concentré s'annulerait. Le P1 est le seul ordre où il reste strictement
-positif. Conséquence assumée : les maxima tirés de cette projection (sigma_1_max)
-sont des maxima lissés P1, même sur un maillage P2.
+La projection à masse concentrée est implémentée en P1 : sur les éléments HEX8/HEX20 supportés, le
+dénominateur concentré ∫φ_i dx y est strictement positif. Ce choix n'est pas généralisé aux autres
+ordres ni aux autres familles d'éléments. Conséquence assumée : les maxima tirés de cette projection
+(sigma_1_max) sont des maxima lissés P1, même sur un maillage P2.
 """
 from __future__ import annotations
 

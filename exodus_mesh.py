@@ -20,9 +20,9 @@ O-ring compris), et il est vérifié par tests/test_exodus.py sur un cube HEX8 e
 Parallélisme (dolfinx 0.11) :
   * create_mesh reçoit la connectivité d'un seul rang et la distribue ; dupliquer la connectivité sur
     tous les rangs provoque une corruption du tas (SIGABRT) dès que n > 1. Le fichier .exo n'est donc lu
-    et validé que sur le rang 0 (points, connectivité, jacobien > 0, facette portée par au plus deux
-    cellules) ; seuls les sidesets — petits — sont diffusés aux autres rangs, qui ne conservent ni les
-    coordonnées ni la connectivité du fichier.
+    et validé que sur le rang 0 (points, connectivité, déterminant > 0 sur les trois arêtes du premier
+    sommet de chaque élément, facette portée par au plus deux cellules) ; seuls les sidesets — petits —
+    sont diffusés aux autres rangs, qui ne conservent ni les coordonnées ni la connectivité du fichier.
   * toute erreur détectée par un seul rang est relayée à tous avant d'être levée (allgather, même motif
     que check_same_numbering dans projection.py) : une levée locale laisserait les autres rangs
     bloqués dans le collectif suivant (deadlock MPI).
@@ -176,9 +176,10 @@ class _MeshData:
 def _check_mesh(ex: ExodusMesh) -> None:
     """
     Contrôles globaux du fichier, sur le rang 0 (seul détenteur des coordonnées et de la connectivité) :
-    jacobien des coins strictement positif partout (maillage ni inversé ni dégénéré) et chaque facette
-    portée par une ou deux cellules, jamais plus (maillage conforme). Chaque échec nomme le premier
-    élément fautif, numéroté à partir de 1 comme dans Cubit.
+    le déterminant des trois arêtes issues du premier sommet de chaque élément est strictement positif
+    (contrôle par élément, et non en chacun de ses coins ; maillage ni inversé ni dégénéré) et chaque
+    facette est portée par une ou deux cellules, jamais plus (maillage conforme). Chaque échec nomme le
+    premier élément fautif, numéroté à partir de 1 comme dans Cubit.
     """
     order = EXODUS_ORDER[ex.cell_type]
     if ex.n_elems == 0 or ex.n_nodes == 0:
@@ -194,7 +195,7 @@ def _check_mesh(ex: ExodusMesh) -> None:
     if inverted.size:
         raise RuntimeError(
             f"{int(inverted.size)} élément(s) de jacobien négatif ou nul (premier : élément {int(inverted[0]) + 1}) : "
-            "maillage inversé ou dégénéré ?"
+            "maillage inversé ou dégénéré, ou non fini ?"
         )
     sub = basix.cell.sub_entity_connectivity(basix.CellType.hexahedron)
     reordered = ex.cells[:, order[:8]]
@@ -211,8 +212,9 @@ def _read_mesh_data(comm: MPI.Comm, path: Path) -> tuple[_MeshData, ExodusMesh |
     Lit et valide le fichier sur le rang 0, diffuse l'en-tête (_MeshData, sidesets compris) aux autres
     rangs. Renvoie (data, ex) ; ex n'est non nul que sur le rang 0, seul à alimenter create_mesh.
 
-    Une erreur de lecture/validation est diffusée avec son type et son message, puis levée à l'identique
-    sur tous les rangs : sans cela, les autres rangs resteraient bloqués dans create_mesh.
+    Une erreur de lecture/validation est diffusée puis levée sur tous les rangs : le message est conservé
+    et le type est limité aux erreurs prévues par _ERROR_TYPES (RuntimeError sinon). Sans cela, les
+    autres rangs resteraient bloqués dans create_mesh.
     """
     data: _MeshData | None = None
     ex: ExodusMesh | None = None

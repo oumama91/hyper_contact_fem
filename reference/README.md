@@ -32,10 +32,10 @@ runs série sont bit à bit identiques. La valeur reste surchargeable par l'appe
 | `O-ring_compression_series_fields.json` | statistiques des champs exportés, série |
 | `O-ring_compression_np2_fields.json` | statistiques des champs exportés, `np = 2` |
 
-Le résumé console arrondit $|u|_{\max}$ à 7 chiffres et `sigma_1_max` à 4 : les métriques en
-précision complète (repr JSON) sont donc produites par `tools/capture_metrics.py`, qui rejoue
-exactement la séquence d'appels de `main._run` et expose les mêmes appels de post-traitement
-que le run normal.
+Le résumé console arrondit $|u|_{\max}$ à 7 chiffres significatifs et `sigma_1_max` à 5 (formats
+`.6e` et `.4e`) : les métriques en précision complète (repr JSON) sont donc produites par
+`tools/capture_metrics.py`, qui rejoue exactement la séquence d'appels de `main._run` et expose
+les mêmes appels de post-traitement que le run normal.
 
 ## Génération
 

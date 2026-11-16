@@ -88,6 +88,8 @@ mpiexec -n 2 python main.py studies/O-ring_compression.yaml    # parallèle
 python -m pytest tests                                         # tests
 ```
 
+Contrôles statiques optionnels : `ruff check .` (`ruff.toml`) et `mypy .` (`mypy.ini`).
+
 Sous Windows, `fenicsx-env` et le `mpiexec` de PETSc n'existent pas : les commandes passent par
 `tools/wsl_run.sh`, qui source conda, active l'environnement et fixe par défaut
 `OMP_NUM_THREADS = OPENBLAS_NUM_THREADS = MKL_NUM_THREADS = 1` (une valeur déjà fixée par l'appelant reste prioritaire) :
@@ -149,8 +151,8 @@ mesh: {file: "../mesh/O-ring.exo", order: 2, quadrature_degree: 4}
 material: {E: 6.0, nu: 0.4999, rho: 1.2e-9}   # [MPa], [-], [t/mm^3]
 physics: {gravity: [0.0, 0.0, 0.0]}
 boundaries:
-  - {name: "symmetry_x", type: "dirichlet", components: [0], value: [0.0]}
   - {name: "symmetry_y", type: "dirichlet", components: [1], value: [0.0]}
+  - {name: "symmetry_x", type: "dirichlet", components: [0], value: [0.0]}
   - {name: "symmetry_z", type: "dirichlet", components: [2], value: [0.0]}
   - {name: "compression", type: "contact",  # contact plan pénalisé
      obstacle: {kind: "plane", point: [0.0, 0.0, 1.8], normal: [0.0, 0.0, -1.0]},
@@ -167,7 +169,8 @@ Fichier Exodus II fourni par l'utilisateur. Le lecteur exige : **3D** (`num_dim 
 **mm** ; **un seul bloc volumique** (`num_el_blk = 1`), `HEX8` (géométrie $P_1$) ou `HEX20` (serendipity
 $P_2$, 20 nœuds) ; numérotation d'éléments identitaire (`elem_num_map` absent ou trivial) ; sidesets
 **nommés** référençant des **faces de bord** (face interne refusée, deux sidesets ne peuvent partager
-une facette) ; maillage conforme et jacobien strictement positif aux coins, contrôlés au chargement.
+une facette) ; maillage conforme et déterminant strictement positif en chaque élément, calculé sur les
+trois arêtes issues de son premier sommet (et non aux coins), contrôlé au chargement.
 
 Les noms de `boundaries` sont ceux des sidesets ; un sideset inutilisé est ignoré (signalé en
 `--verbose`). `probe_points` vérifie qu'un sideset est le bon : chaque point sonde doit être à moins
@@ -244,5 +247,8 @@ Pour `np = 2`, préfixer **uniquement** `capture_metrics.py` par `mpiexec -n 2` 
 - **Pénalité sans multiplicateurs** : non-pénétration approchée, pénétration $\propto 1/\varepsilon_n$.
 - **Frottement holonome** : chargement monotone seulement ; un cycle exigerait une variable d'état.
 - **Indicateur** : `sigma_1_max` est une traction maximale ; la compression minimale serait plus parlante.
+- **Axe du cylindre et centre de la sphère** : la normale divise par la distance radiale (`d_perp/r` au
+  cylindre, `d/r` à la sphère) ; en `r = 0` elle est indéfinie, `contact.py` ne protège pas cette
+  division et ce cas n'est pas traité.
 - **Solveur et chargement** : LU MUMPS (tailles modérées) ; $\lambda$ ne multiplie que gravité et
   Dirichlet, donc un cas porté par le seul contact est indépendant de $\lambda$.
