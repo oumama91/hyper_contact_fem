@@ -87,6 +87,97 @@ def _names(ds: netCDF4.Dataset, *candidates: str, count: int) -> list[str]:
 # -----------------------------------------------------------------------------
 # Lecture
 # -----------------------------------------------------------------------------
+def _read_header(ds: netCDF4.Dataset, path: Path) -> tuple[np.ndarray, int, int, str]:
+    """En-tête et coordonnées : dimensions, bloc, type d'élément et points, dans l'ordre d'origine."""
+    if "num_dim" not in ds.dimensions:
+        raise ValueError(f"{path.name} : ce fichier n'est pas un fichier Exodus (dimension 'num_dim' absente).")
+    n_dim = _dim_len(ds, "num_dim")
+    if n_dim != 3:
+        raise ValueError(f"{path.name} : maillage {n_dim}D non supporté (le solveur est 3D).")
+
+    n_nodes = _dim_len(ds, "num_nodes")
+    n_elems = _dim_len(ds, "num_elem")
+    n_blocks = _dim_len(ds, "num_el_blk")
+    if n_blocks != 1:
+        raise ValueError(
+            f"{path.name} : {n_blocks} blocs d'éléments (multi-matériaux non supporté : "
+            "exporter un seul bloc de volume depuis Cubit)."
+        )
+    if n_nodes <= 0:
+        raise ValueError(f"{path.name} : maillage sans nœud (num_nodes = {n_nodes}).")
+    if n_elems <= 0:
+        raise ValueError(f"{path.name} : maillage sans élément (num_elem = {n_elems}).")
+    if "connect1" not in ds.variables:
+        raise ValueError(f"{path.name} : bloc d'éléments 'connect1' absent.")
+
+    cell_type = str(getattr(ds.variables["connect1"], "elem_type", "")).strip().upper()
+    if cell_type not in SUPPORTED_CELL_TYPES:
+        raise ValueError(
+            f"{path.name} : type d'élément {cell_type or 'inconnu'!r} non supporté "
+            f"(attendu : {' ou '.join(SUPPORTED_CELL_TYPES)})."
+        )
+
+    missing = [c for c in "xyz" if f"coord{c}" not in ds.variables]
+    if missing:
+        raise ValueError(f"{path.name} : coordonnées {missing} absentes du fichier.")
+    coords = [np.asarray(_var(ds, f"coord{c}"), dtype=np.float64) for c in "xyz"]
+    if any(coord.ndim != 1 for coord in coords) or len({coord.shape[0] for coord in coords}) != 1:
+        raise ValueError(
+            f"{path.name} : coordonnées de dimensions incohérentes "
+            f"({', '.join(str(coord.shape) for coord in coords)})."
+        )
+    points = np.ascontiguousarray(np.column_stack(coords), dtype=np.float64)
+    if points.shape[0] != n_nodes:
+        raise ValueError(f"{path.name} : {points.shape[0]} nœuds lus pour 'num_nodes' = {n_nodes}.")
+    if not np.isfinite(points).all():
+        raise ValueError(f"{path.name} : coordonnées non finies (NaN ou Inf).")
+    return points, n_nodes, n_elems, cell_type
+
+
+def _read_cell_block(
+    ds: netCDF4.Dataset, path: Path, n_nodes: int, n_elems: int, cell_type: str
+) -> np.ndarray:
+    """Connectivité du bloc volumique unique, en 0-based, avec contrôles de forme et de bornes."""
+    cells = np.ascontiguousarray(np.asarray(_var(ds, "connect1"), dtype=np.int64) - 1, dtype=np.int64)
+    if cells.ndim != 2 or cells.shape[0] != n_elems:
+        raise ValueError(f"{path.name} : connectivité de forme {cells.shape} inattendue.")
+    n_per_elem = {"HEX8": 8, "HEX20": 20}[cell_type]
+    if cells.shape[1] != n_per_elem:
+        raise ValueError(
+            f"{path.name} : connectivité de {cells.shape[1]} nœuds par élément "
+            f"(attendu {n_per_elem} pour {cell_type})."
+        )
+    if cells.min() < 0 or cells.max() >= n_nodes:
+        raise ValueError(f"{path.name} : connectivité hors bornes (nœuds 1..{n_nodes}).")
+    return cells
+
+
+def _read_sidesets(ds: netCDF4.Dataset, path: Path, n_elems: int) -> dict[str, tuple[np.ndarray, np.ndarray]]:
+    """Sidesets nommés : éléments 0-based et faces 1..6, avec les contrôles de cohérence d'origine."""
+    n_sidesets = _dim_len(ds, "num_side_sets")
+    ss_names = _names(ds, "ss_names", "name_ss", count=n_sidesets)
+    sidesets: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+    for s in range(1, n_sidesets + 1):
+        name = ss_names[s - 1]
+        if not name:
+            raise ValueError(f"{path.name} : sideset {s} sans nom (les sidesets doivent être nommés pour le YAML).")
+        if name in sidesets:
+            raise ValueError(f"{path.name} : sideset '{name}' défini deux fois.")
+        elems = np.ascontiguousarray(np.asarray(_var(ds, f"elem_ss{s}"), dtype=np.int64) - 1, dtype=np.int64)
+        sides = np.ascontiguousarray(np.asarray(_var(ds, f"side_ss{s}"), dtype=np.int64), dtype=np.int64)
+        if elems.ndim != 1 or sides.ndim != 1 or elems.shape != sides.shape:
+            raise ValueError(f"{path.name} : sideset '{name}' : listes de longueurs différentes.")
+        if elems.size and (elems.min() < 0 or elems.max() >= n_elems):
+            raise ValueError(f"{path.name} : sideset '{name}' référence un élément hors bornes.")
+        if sides.size and (sides.min() < 1 or sides.max() > N_HEX_SIDES):
+            raise ValueError(
+                f"{path.name} : sideset '{name}' : numéro de face hors bornes "
+                f"({sides.min()}..{sides.max()}, attendu 1..{N_HEX_SIDES})."
+            )
+        sidesets[name] = (elems, sides)
+    return sidesets
+
+
 def read_exodus(path: str | Path) -> ExodusMesh:
     """
     Lit un fichier Exodus II et retourne son maillage (points, cellules) et ses sidesets nommés.
@@ -97,60 +188,9 @@ def read_exodus(path: str | Path) -> ExodusMesh:
         raise FileNotFoundError(f"Fichier de maillage Exodus introuvable : {path}")
 
     with netCDF4.Dataset(str(path), "r") as ds:
-        if "num_dim" not in ds.dimensions:
-            raise ValueError(f"{path.name} : ce fichier n'est pas un fichier Exodus (dimension 'num_dim' absente).")
-        n_dim = _dim_len(ds, "num_dim")
-        if n_dim != 3:
-            raise ValueError(f"{path.name} : maillage {n_dim}D non supporté (le solveur est 3D).")
+        points, n_nodes, n_elems, cell_type = _read_header(ds, path)
 
-        n_nodes = _dim_len(ds, "num_nodes")
-        n_elems = _dim_len(ds, "num_elem")
-        n_blocks = _dim_len(ds, "num_el_blk")
-        if n_blocks != 1:
-            raise ValueError(
-                f"{path.name} : {n_blocks} blocs d'éléments (multi-matériaux non supporté : "
-                "exporter un seul bloc de volume depuis Cubit)."
-            )
-        if n_nodes <= 0:
-            raise ValueError(f"{path.name} : maillage sans nœud (num_nodes = {n_nodes}).")
-        if n_elems <= 0:
-            raise ValueError(f"{path.name} : maillage sans élément (num_elem = {n_elems}).")
-        if "connect1" not in ds.variables:
-            raise ValueError(f"{path.name} : bloc d'éléments 'connect1' absent.")
-
-        cell_type = str(getattr(ds.variables["connect1"], "elem_type", "")).strip().upper()
-        if cell_type not in SUPPORTED_CELL_TYPES:
-            raise ValueError(
-                f"{path.name} : type d'élément {cell_type or 'inconnu'!r} non supporté "
-                f"(attendu : {' ou '.join(SUPPORTED_CELL_TYPES)})."
-            )
-
-        missing = [c for c in "xyz" if f"coord{c}" not in ds.variables]
-        if missing:
-            raise ValueError(f"{path.name} : coordonnées {missing} absentes du fichier.")
-        coords = [np.asarray(_var(ds, f"coord{c}"), dtype=np.float64) for c in "xyz"]
-        if any(coord.ndim != 1 for coord in coords) or len({coord.shape[0] for coord in coords}) != 1:
-            raise ValueError(
-                f"{path.name} : coordonnées de dimensions incohérentes "
-                f"({', '.join(str(coord.shape) for coord in coords)})."
-            )
-        points = np.ascontiguousarray(np.column_stack(coords), dtype=np.float64)
-        if points.shape[0] != n_nodes:
-            raise ValueError(f"{path.name} : {points.shape[0]} nœuds lus pour 'num_nodes' = {n_nodes}.")
-        if not np.isfinite(points).all():
-            raise ValueError(f"{path.name} : coordonnées non finies (NaN ou Inf).")
-
-        cells = np.ascontiguousarray(np.asarray(_var(ds, "connect1"), dtype=np.int64) - 1, dtype=np.int64)
-        if cells.ndim != 2 or cells.shape[0] != n_elems:
-            raise ValueError(f"{path.name} : connectivité de forme {cells.shape} inattendue.")
-        n_per_elem = {"HEX8": 8, "HEX20": 20}[cell_type]
-        if cells.shape[1] != n_per_elem:
-            raise ValueError(
-                f"{path.name} : connectivité de {cells.shape[1]} nœuds par élément "
-                f"(attendu {n_per_elem} pour {cell_type})."
-            )
-        if cells.min() < 0 or cells.max() >= n_nodes:
-            raise ValueError(f"{path.name} : connectivité hors bornes (nœuds 1..{n_nodes}).")
+        cells = _read_cell_block(ds, path, n_nodes, n_elems, cell_type)
 
         # Les sidesets référencent la numérotation des éléments du fichier : une numérotation
         # utilisateur non identitaire rendrait cette référence ambiguë.
@@ -161,26 +201,6 @@ def read_exodus(path: str | Path) -> ExodusMesh:
                 "réexporter le maillage depuis Cubit sans renumérotation."
             )
 
-        n_sidesets = _dim_len(ds, "num_side_sets")
-        ss_names = _names(ds, "ss_names", "name_ss", count=n_sidesets)
-        sidesets: dict[str, tuple[np.ndarray, np.ndarray]] = {}
-        for s in range(1, n_sidesets + 1):
-            name = ss_names[s - 1]
-            if not name:
-                raise ValueError(f"{path.name} : sideset {s} sans nom (les sidesets doivent être nommés pour le YAML).")
-            if name in sidesets:
-                raise ValueError(f"{path.name} : sideset '{name}' défini deux fois.")
-            elems = np.ascontiguousarray(np.asarray(_var(ds, f"elem_ss{s}"), dtype=np.int64) - 1, dtype=np.int64)
-            sides = np.ascontiguousarray(np.asarray(_var(ds, f"side_ss{s}"), dtype=np.int64), dtype=np.int64)
-            if elems.ndim != 1 or sides.ndim != 1 or elems.shape != sides.shape:
-                raise ValueError(f"{path.name} : sideset '{name}' : listes de longueurs différentes.")
-            if elems.size and (elems.min() < 0 or elems.max() >= n_elems):
-                raise ValueError(f"{path.name} : sideset '{name}' référence un élément hors bornes.")
-            if sides.size and (sides.min() < 1 or sides.max() > N_HEX_SIDES):
-                raise ValueError(
-                    f"{path.name} : sideset '{name}' : numéro de face hors bornes "
-                    f"({sides.min()}..{sides.max()}, attendu 1..{N_HEX_SIDES})."
-                )
-            sidesets[name] = (elems, sides)
+        sidesets = _read_sidesets(ds, path, n_elems)
 
     return ExodusMesh(points=points, cells=cells, cell_type=cell_type, sidesets=sidesets)
