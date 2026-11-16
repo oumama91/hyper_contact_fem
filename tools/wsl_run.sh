@@ -4,7 +4,7 @@
 # on ne compte donc pas sur ~/.bashrc.
 set -euo pipefail
 
-CONDA_BASE="/home/oudan/miniconda3"
+CONDA_BASE="${CONDA_BASE:-${HOME}/miniconda3}"
 source "${CONDA_BASE}/etc/profile.d/conda.sh"
 conda activate fenicsx-env
 

@@ -1,9 +1,69 @@
+# Python : bytecode, environnements et outils de test/qualité
 __pycache__/
 *.py[cod]
+*$py.class
+.Python
 .pytest_cache/
-.ruff_cache/
 .mypy_cache/
+.ruff_cache/
+.pyright/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
 
-# Sorties de run (régénérées à chaque exécution) : seules les références figées de
-# reference/ sont versionnées.
-results/
+# Environnements et distributions Python
+.venv/
+venv/
+env/
+ENV/
+build/
+dist/
+site/
+.eggs/
+*.egg
+*.egg-info/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# IDE, systèmes d'exploitation et fichiers temporaires/backup
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+*.tmp
+
+# Journaux de calcul : les journaux de référence restent versionnés
+*.log
+!reference/**/*.log
+
+# Résultats régénérables de calcul et exports ParaView / ADIOS2
+/results/
+*.bp/
+*.vtu
+*.pvtu
+*.vti
+*.pvti
+*.vtp
+*.pvtp
+*.vtr
+*.pvtr
+*.vtk
+*.pvd
+*.xdmf
+
+# Fichiers de sortie usuels des ordonnanceurs et de PETSc/MPI
+slurm-*.out
+*.out
+*.err
+core
+core.*

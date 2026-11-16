@@ -1,12 +1,14 @@
 # hyper_contact_fem
 
+**Version actuelle : 1.0**
+
 Solveur éléments finis 3D pour un **corps hyperélastique quasi-incompressible** en **contact
 unilatéral pénalisé avec frottement de Coulomb** contre des **obstacles rigides analytiques**.
 Maillage **Exodus II**, étude décrite par un fichier **YAML**, code **FEniCSx**.
 
 **Sommaire** : [Présentation](#présentation) · [Modèle mécanique](#modèle-mécanique) ·
 [Installation](#installation-et-utilisation) · [Fichier YAML](#fichier-yaml) ·
-[Maillage](#maillage-exodus) · [Sorties](#sorties) · [Architecture](#architecture) ·
+[Maillage](#maillage-exodus) · [Sorties](#sorties) · [Structure](#structure-du-dépôt) ·
 [Validation](#validation) · [Limites](#limites-connues)
 
 ## Présentation
@@ -74,15 +76,22 @@ direct MUMPS** (`preonly`/`lu`/`mumps`).
 
 ## Installation et utilisation
 
-Ubuntu (WSL), environnement **conda** `fenicsx-env`. Ni `setup.py` ni `pyproject.toml` : les modules
-ne sont pas installés, donc lancer depuis la racine du dépôt (le dossier courant est dans `sys.path`).
-Versions de référence (environnement `conda-forge`) : Python 3.12.13, `fenics-dolfinx` 0.11.0, PETSc
-3.25.6 **avec MUMPS** (indispensable à la factorisation directe de la tangente mixte), `petsc4py`
-3.25.6, `mpi4py` 4.1.2, `numpy` 2.5.3, `netCDF4` 1.7.4, `pydantic` 2.14.1, `pyyaml` 6.0.3, `pytest` 9.1.1.
+Environnement de référence : Linux (natif ou WSL) et **conda-forge**. Le projet n'est pas empaqueté :
+les modules Python sont lancés depuis la racine du dépôt. Versions utilisées pour les références :
+Python 3.12.13, `fenics-dolfinx` 0.11.0, PETSc 3.25.6 **avec MUMPS** (indispensable à la
+factorisation directe de la tangente mixte), `petsc4py` 3.25.6, `mpi4py` 4.1.2, `numpy` 2.5.3,
+`netCDF4` 1.7.4, `pydantic` 2.14.1, `pyyaml` 6.0.3 et `pytest` 9.1.1. La configuration PETSc
+installée doit inclure MUMPS.
+
+Exemple de création de l'environnement de référence (les versions doivent être disponibles sur
+la plateforme conda-forge utilisée) :
 
 ```bash
+conda create -n fenicsx-env -c conda-forge \
+  python=3.12 fenics-dolfinx=0.11.0 petsc4py=3.25.6 mpi4py=4.1.2 \
+  numpy=2.5.3 netcdf4=1.7.4 pydantic=2.14.1 pyyaml=6.0.3 pytest=9.1.1
 conda activate fenicsx-env
-cd /mnt/d/Recherche/hyper_contact_fem
+cd <chemin-vers-le-clone>
 python main.py studies/O-ring_compression.yaml                 # série
 mpiexec -n 2 python main.py studies/O-ring_compression.yaml    # parallèle
 python -m pytest tests                                         # tests
@@ -90,13 +99,18 @@ python -m pytest tests                                         # tests
 
 Contrôles statiques optionnels : `ruff check .` (`ruff.toml`) et `mypy .` (`mypy.ini`).
 
-Sous Windows, `fenicsx-env` et le `mpiexec` de PETSc n'existent pas : les commandes passent par
-`tools/wsl_run.sh`, qui source conda, active l'environnement et fixe par défaut
-`OMP_NUM_THREADS = OPENBLAS_NUM_THREADS = MKL_NUM_THREADS = 1` (une valeur déjà fixée par l'appelant reste prioritaire) :
+Sous Windows, FEniCSx et le `mpiexec` PETSc s'exécutent dans WSL. Depuis la racine du dépôt côté
+Linux/WSL, le wrapper `tools/wsl_run.sh` active conda et fixe par défaut
+`OMP_NUM_THREADS = OPENBLAS_NUM_THREADS = MKL_NUM_THREADS = 1` (une valeur déjà fixée par
+l'appelant reste prioritaire). Il recherche conda sous `$HOME/miniconda3` ; définir `CONDA_BASE`
+si conda est installé ailleurs :
 
 ```bash
-wsl.exe --cd /mnt/d/Recherche/hyper_contact_fem -e bash tools/wsl_run.sh python main.py studies/O-ring_compression.yaml
+bash tools/wsl_run.sh python main.py studies/O-ring_compression.yaml
 ```
+
+Depuis Windows, lancer cette commande avec WSL en positionnant le répertoire courant à la racine
+du clone dans le système de fichiers Linux.
 
 `output.outdir` est obligatoire ; `mesh.file` et `output.outdir` sont relatifs au YAML.
 
@@ -194,7 +208,31 @@ nombre de processus MPI, le maillage (type, cellules, DDLs, ordres, nœuds, volu
 Newton, le solveur, les temps, le résidu final, la recherche linéaire, les réactions par frontière et
 totales, le bilan, les chemins CSV et `.bp`, $|\mathbf u|_{\max}$ [mm] et `sigma_1_max` [MPa] (plus grande contrainte principale de Cauchy, projection $P_1$).
 
-## Architecture
+## Structure du dépôt
+
+```text
+.
+├── config.py, contact.py, forms.py, material.py, solver.py, ...  # solveur et modules Python
+├── mesh/                                                        # maillage Exodus II fourni
+├── studies/                                                     # cas YAML exécutables
+├── tests/                                                       # tests pytest, dont le cas golden
+├── tools/                                                       # scripts de validation et wrapper WSL
+├── reference/                                                   # sorties numériques de référence
+├── results/                                                     # résultats générés, ignorés par Git
+├── README.md
+├── VERSION                                                     # version publiée du projet
+├── LICENSE
+├── .gitignore
+├── ruff.toml
+└── mypy.ini
+```
+
+Les modules sont actuellement à la racine (pas de répertoire `src/`) : cette disposition est
+intentionnelle pour préserver les imports et le lancement depuis le clone. Les fichiers de maillage,
+d'études et de référence sont des entrées/tests du projet et sont conservés dans Git ; seuls les
+résultats régénérables sont exclus.
+
+## Architecture du code
 
 | Fichier | Rôle |
 |---|---|
@@ -238,7 +276,7 @@ Pour `np = 2`, préfixer **uniquement** `capture_metrics.py` par `mpiexec -n 2` 
 `np2` ; `compare_reference.py` reste série. Tolérances : écart relatif $\le 10^{-12}$ en série (attendu
 0), $\le 10^{-8}$ pour `np = 2`, compteurs en égalité stricte ; la reproductibilité série exige les threads BLAS à 1 fixés par `tools/wsl_run.sh`.
 
-`tests/` contient 42 tests (environ 90 s) : `test_config.py` (schéma strict, bornes), `test_contact.py`
+`tests/` contient 118 cas de test (durée dépendante de l'environnement, le test golden exécute un solveur complet) : `test_config.py` (schéma strict, bornes), `test_contact.py`
 (jauge, normale, pénalité, frottement), `test_exodus.py` (permutations `HEX8`/`HEX20`, sidesets, erreurs) et `test_oring_golden.py` (run complet comparé à `reference/`).
 
 ## Limites connues

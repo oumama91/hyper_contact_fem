@@ -6,7 +6,8 @@
 reset
 
 # ---- Import du STEP -------------------------------------------------
-import step "D:/Recherche/FEM/cad/O-ring.step" heal
+# Placer le fichier source O-ring.step à côté de ce journal avant le remaillage.
+import step "O-ring.step" heal
 volume all scale 1.0
 
 # ---- Schéma par défaut (AVANT les dualbias) -------------------------
