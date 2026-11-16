@@ -94,7 +94,8 @@ def _compare_fields(run: dict, ref: dict, tol: float) -> tuple[list[str], list[s
     return rows, failures
 
 
-def main() -> int:
+def _parse_args() -> argparse.Namespace:
+    """Analyse la ligne de commande et vérifie la cohérence des options de champs."""
     parser = argparse.ArgumentParser(description="Compare un run aux références JSON de non-régression.")
     parser.add_argument("--run", required=True, help="Métriques du run à valider (JSON)")
     parser.add_argument("--reference", required=True, help="Métriques de référence (JSON)")
@@ -106,6 +107,76 @@ def main() -> int:
     args = parser.parse_args()
     if (args.fields_run is None) != (args.fields_reference is None):
         parser.error("--fields-run et --fields-reference vont ensemble.")
+    return args
+
+
+def _reaction_scale(ref: dict) -> tuple[float, float]:
+    """Échelle et plancher des réactions : plus grande composante de la référence."""
+    scale = 0.0
+    for group in ("reactions", "reaction_total", "external"):
+        value = ref[group]
+        components = [c for vec in value.values() for c in vec] if isinstance(value, dict) else list(value)
+        scale = max(scale, max((abs(float(c)) for c in components), default=0.0))
+    floor = 1.0e-8 * scale if scale > 0.0 else 1.0
+    return scale, floor
+
+
+def _compare_scalars(run: dict, ref: dict, tol: float) -> tuple[list[str], list[str]]:
+    """Lignes et échecs des scalaires globaux, avec le plancher du lot 1 pour une référence nulle."""
+    # Plancher des scalaires : même mécanisme que les réactions et les champs, mais appliqué
+    # seulement quand la référence est exactement nulle. Pour une référence non nulle, le
+    # dénominateur reste |référence| et l'écart est strictement celui d'avant.
+    scalar_scale = max((abs(float(ref[key])) for key in SCALARS), default=0.0)
+    scalar_floor = 1.0e-8 * scalar_scale if scalar_scale > 0.0 else 1.0
+
+    rows: list[str] = ["--- scalaires globaux ---"]
+    failures: list[str] = []
+    for key in SCALARS:
+        key_floor = scalar_floor if float(ref[key]) == 0.0 else 0.0
+        line, ok = _row(key, run[key], ref[key], _rel_error(run[key], ref[key], key_floor), tol)
+        rows.append(line)
+        if not ok:
+            failures.append(key)
+    return rows, failures
+
+
+def _compare_counters(run: dict, ref: dict) -> tuple[list[str], list[str]]:
+    """Lignes et échecs des compteurs, comparés en égalité stricte."""
+    rows: list[str] = ["--- compteurs (égalité stricte) ---"]
+    failures: list[str] = []
+    for key in COUNTERS:
+        same = int(run[key]) == int(ref[key])
+        rows.append(f"{key:<34} {int(ref[key]):>15d}  {int(run[key]):>15d}  {'0':>10}  {'exact':>9}  {'OK' if same else 'ÉCHEC'}")
+        if not same:
+            failures.append(key)
+    return rows, failures
+
+
+def _compare_vector(
+    label: str,
+    header: str,
+    vec_ref: list[float],
+    vec_run: list[float],
+    floor: float,
+    tol: float,
+) -> tuple[list[str], list[str]]:
+    """Lignes et échecs d'un vecteur de réactions ou de forces, composante par composante."""
+    if len(vec_run) != len(vec_ref):
+        return [f"{header} longueur {len(vec_run)} != {len(vec_ref)} (référence)"], [f"{label} (longueur)"]
+    rows: list[str] = []
+    failures: list[str] = []
+    for comp, (a, b) in enumerate(zip(vec_ref, vec_run, strict=True)):
+        comp_label = f"{label}[{comp}]"
+        error = _rel_error(b, a, floor)
+        line, ok = _row(comp_label, b, a, error, tol)
+        rows.append(line)
+        if not ok:
+            failures.append(comp_label)
+    return rows, failures
+
+
+def main() -> int:
+    args = _parse_args()
 
     run = _load(args.run)
     ref = _load(args.reference)
@@ -121,41 +192,15 @@ def main() -> int:
         return 1
 
     tol = args.tol if args.tol is not None else (1.0e-12 if int(ref["mpi_size"]) == 1 else 1.0e-8)
-
-    # Échelle des réactions : plus grande composante de référence (réactions + total + forces extérieures).
-    scale = 0.0
-    for group in ("reactions", "reaction_total", "external"):
-        value = ref[group]
-        components = [c for vec in value.values() for c in vec] if isinstance(value, dict) else list(value)
-        scale = max(scale, max((abs(float(c)) for c in components), default=0.0))
-    floor = 1.0e-8 * scale if scale > 0.0 else 1.0
-
-    # Plancher des scalaires : même mécanisme que les réactions et les champs, mais appliqué
-    # seulement quand la référence est exactement nulle. Pour une référence non nulle, le
-    # dénominateur reste |référence| et l'écart est strictement celui d'avant.
-    scalar_scale = max((abs(float(ref[key])) for key in SCALARS), default=0.0)
-    scalar_floor = 1.0e-8 * scalar_scale if scalar_scale > 0.0 else 1.0
-
-    rows: list[str] = []
-    failures: list[str] = []
+    scale, floor = _reaction_scale(ref)
 
     print(f"Tolérance : {tol:.0e}\n")
     print(f"{'Grandeur':<34} {'référence':>15}  {'run':>15}  {'écart rel.':>10}  {'tol.':>9}  statut")
 
-    rows.append("--- scalaires globaux ---")
-    for key in SCALARS:
-        key_floor = scalar_floor if float(ref[key]) == 0.0 else 0.0
-        line, ok = _row(key, run[key], ref[key], _rel_error(run[key], ref[key], key_floor), tol)
-        rows.append(line)
-        if not ok:
-            failures.append(key)
-
-    rows.append("--- compteurs (égalité stricte) ---")
-    for key in COUNTERS:
-        same = int(run[key]) == int(ref[key])
-        rows.append(f"{key:<34} {int(ref[key]):>15d}  {int(run[key]):>15d}  {'0':>10}  {'exact':>9}  {'OK' if same else 'ÉCHEC'}")
-        if not same:
-            failures.append(key)
+    rows, failures = _compare_scalars(run, ref, tol)
+    counter_rows, counter_failures = _compare_counters(run, ref)
+    rows.extend(counter_rows)
+    failures.extend(counter_failures)
 
     rows.append("--- réactions [N] (référence, run, écart) ---")
     ref_reactions = ref["reactions"]
@@ -171,32 +216,15 @@ def main() -> int:
     for name, vec_ref in ref_reactions.items():
         if name not in run_reactions:
             continue
-        vec_run = run_reactions[name]
-        if len(vec_run) != len(vec_ref):
-            rows.append(f"reactions.{name:<22} longueur {len(vec_run)} != {len(vec_ref)} (référence)")
-            failures.append(f"reactions.{name} (longueur)")
-            continue
-        for comp, (a, b) in enumerate(zip(vec_ref, vec_run, strict=True)):
-            label = f"reactions.{name}[{comp}]"
-            error = _rel_error(b, a, floor)
-            line, ok = _row(label, b, a, error, tol)
-            rows.append(line)
-            if not ok:
-                failures.append(label)
+        vector_rows, vector_failures = _compare_vector(
+            f"reactions.{name}", f"reactions.{name:<22}", vec_ref, run_reactions[name], floor, tol
+        )
+        rows.extend(vector_rows)
+        failures.extend(vector_failures)
     for key in ("reaction_total", "external"):
-        vec_ref = ref[key]
-        vec_run = run[key]
-        if len(vec_run) != len(vec_ref):
-            rows.append(f"{key:<34} longueur {len(vec_run)} != {len(vec_ref)} (référence)")
-            failures.append(f"{key} (longueur)")
-            continue
-        for comp, (a, b) in enumerate(zip(vec_ref, vec_run, strict=True)):
-            label = f"{key}[{comp}]"
-            error = _rel_error(b, a, floor)
-            line, ok = _row(label, b, a, error, tol)
-            rows.append(line)
-            if not ok:
-                failures.append(label)
+        vector_rows, vector_failures = _compare_vector(key, f"{key:<34}", ref[key], run[key], floor, tol)
+        rows.extend(vector_rows)
+        failures.extend(vector_failures)
 
     if args.fields_run is not None:
         field_rows, field_failures = _compare_fields(_load(args.fields_run), _load(args.fields_reference), tol)
