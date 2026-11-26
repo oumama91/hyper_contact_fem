@@ -33,14 +33,14 @@ import math
 
 import ufl
 
-from config import (
+from hyper_contact_fem.config import (
     ContactBoundary,
     CylinderObstacle,
     Obstacle,
     PlaneObstacle,
     SphereObstacle,
 )
-from utils import Expr
+from hyper_contact_fem.utils import Expr
 
 # Régularisation de la norme du vecteur tangentiel essai (évite une division par zéro exacte en 0 ;
 # l'échelle est fixée par epsilon_t de sorte que le terme soit négligeable dès qu'il y a un glissement

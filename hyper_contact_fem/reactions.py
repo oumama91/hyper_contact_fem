@@ -7,9 +7,9 @@ from pathlib import Path
 import numpy as np
 from mpi4py import MPI
 
-from dirichlet import DirichletSet
-from forms import Forms
-from utils import assemble_vec, ensure_dir, owned_size
+from hyper_contact_fem.dirichlet import DirichletSet
+from hyper_contact_fem.forms import Forms
+from hyper_contact_fem.utils import assemble_vec, ensure_dir, owned_size
 
 
 @dataclass(frozen=True)

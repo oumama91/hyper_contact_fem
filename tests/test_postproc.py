@@ -14,7 +14,7 @@ from dolfinx import fem
 from dolfinx import mesh as dm
 from mpi4py import MPI
 
-from postproc import _max_displacement, _owned_max
+from hyper_contact_fem.postproc import _max_displacement, _owned_max
 
 _POINTS = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
 _CELLS = np.array([[0, 1, 2, 3]], dtype=np.int64)

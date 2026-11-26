@@ -14,7 +14,7 @@ from dolfinx import fem
 from dolfinx.mesh import Mesh
 from mpi4py import MPI
 
-from utils import Expr, assemble_vec
+from hyper_contact_fem.utils import Expr, assemble_vec
 
 
 def lagrange_space(domain: Mesh, degree: int, shape: tuple[int, ...] = ()) -> fem.FunctionSpace:

@@ -15,7 +15,7 @@ import ufl
 from dolfinx import fem
 from dolfinx.mesh import Mesh
 
-from utils import SCALAR, Expr
+from hyper_contact_fem.utils import SCALAR, Expr
 
 
 def deformation_gradient(u: Expr) -> Expr:

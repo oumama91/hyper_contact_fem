@@ -40,10 +40,10 @@ from dolfinx.io import VTXWriter
 from dolfinx.mesh import Mesh
 from mpi4py import MPI
 
-from config import COMPONENTS, Config, resolve_fields
-from forms import Forms
-from projection import export_spaces, nodal_columns, project_p1
-from utils import Expr, ensure_dir
+from hyper_contact_fem.config import COMPONENTS, Config, resolve_fields
+from hyper_contact_fem.forms import Forms
+from hyper_contact_fem.projection import export_spaces, nodal_columns, project_p1
+from hyper_contact_fem.utils import Expr, ensure_dir
 
 # Champs d'export qui exigent le tenseur des contraintes / des déformations
 STRESS_FIELDS = frozenset({"cauchy_stress", "principal_stress"})

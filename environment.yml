@@ -1,0 +1,18 @@
+# Environnement de référence : Linux/WSL, conda-forge.
+# PETSc doit être résolu avec MUMPS (indispensable au solveur LU direct) :
+# vérifier le build avec `conda list petsc` après création.
+name: fenicsx-env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12.13
+  - fenics-dolfinx=0.11.0
+  - petsc4py=3.25.6
+  - mpi4py=4.1.2
+  - numpy=2.5.3
+  - netcdf4=1.7.4
+  - pydantic=2.14.1
+  - pyyaml=6.0.3
+  - pytest=9.1.1
+  - ruff
+  - mypy

@@ -2,7 +2,8 @@
 Lecteur Exodus et permutations de numérotation : contrôles sur HEX8/HEX20 et sur le maillage
 de l'étude de référence (`mesh/O-ring.exo`).
 
-Les permutations attendues sont celles documentées dans exodus_mesh.py, vérifiées ici
+Les permutations attendues sont celles documentées dans ``hyper_contact_fem/exodus_mesh.py``,
+vérifiées ici
 explicitement : une inversion silencieuse produirait un maillage faux sans lever d'erreur.
 """
 from __future__ import annotations
@@ -12,8 +13,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from exodus_mesh import EXODUS_ORDER, _check_mesh, _local_facet_of_side
-from exodus_reader import read_exodus
+from hyper_contact_fem.exodus_mesh import EXODUS_ORDER, _check_mesh, _local_facet_of_side
+from hyper_contact_fem.exodus_reader import read_exodus
 
 MESH_FILE = Path(__file__).resolve().parents[1] / "mesh" / "O-ring.exo"
 

@@ -15,7 +15,7 @@ import numpy as np
 import pytest
 from test_exodus_invalid import CUBE_CELLS, CUBE_POINTS, _layout, _write
 
-from exodus_reader import read_exodus
+from hyper_contact_fem.exodus_reader import read_exodus
 
 ROOT = Path(__file__).resolve().parents[1]
 REFERENCE_MESH = ROOT / "mesh" / "O-ring.exo"

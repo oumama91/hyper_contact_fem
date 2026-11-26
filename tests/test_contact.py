@@ -17,8 +17,8 @@ from dolfinx import fem
 from dolfinx import mesh as dm
 from mpi4py import MPI
 
-from config import CylinderObstacle, PlaneObstacle, SphereObstacle
-from contact import gap_and_normal, normal_pressure, tangential_traction
+from hyper_contact_fem.config import CylinderObstacle, PlaneObstacle, SphereObstacle
+from hyper_contact_fem.contact import gap_and_normal, normal_pressure, tangential_traction
 
 _POINTS = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
 _CELLS = np.array([[0, 1, 2, 3]], dtype=np.int64)
