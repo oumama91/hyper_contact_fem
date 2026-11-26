@@ -1,6 +1,6 @@
 # hyper_contact_fem
 
-**Version 1.0** — solveur éléments finis 3D FEniCSx pour un corps hyperélastique
+**Version 1.1** — solveur éléments finis 3D FEniCSx pour un corps hyperélastique
 quasi-incompressible en contact unilatéral pénalisé avec frottement de Coulomb
 contre des obstacles rigides analytiques. Maillage Exodus II, étude YAML.
 
