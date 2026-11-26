@@ -1,5 +1,6 @@
 """
-Tests unitaires de ``DirichletSet`` (dirichlet.py) : contrat ``names`` / ``owner`` / ``comp_of``.
+Tests unitaires de ``DirichletSet`` (``hyper_contact_fem/dirichlet.py``) : contrat ``names`` /
+``owner`` / ``comp_of``.
 
 Le golden n'exerce qu'un cas simple (trois symétries sur des composantes distinctes) et ne
 couvre ni les frontières sécantes, ni les dofs partagés, ni les dofs fantômes. Ces tests

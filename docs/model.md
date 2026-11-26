@@ -62,7 +62,7 @@ direct MUMPS** (`preonly`/`lu`/`mumps`).
 - **Frottement holonome** : chargement monotone seulement ; un cycle exigerait une variable d'état.
 - **Indicateur** : `sigma_1_max` est une traction maximale ; la compression minimale serait plus parlante.
 - **Axe du cylindre et centre de la sphère** : la normale divise par la distance radiale (`d_perp/r` au
-  cylindre, `d/r` à la sphère) ; en `r = 0` elle est indéfinie, `contact.py` ne protège pas cette
-  division et ce cas n'est pas traité.
+  cylindre, `d/r` à la sphère) ; en `r = 0` elle est indéfinie,
+  `hyper_contact_fem/contact.py` ne protège pas cette division et ce cas n'est pas traité.
 - **Solveur et chargement** : LU MUMPS (tailles modérées) ; $\lambda$ ne multiplie que gravité et
   Dirichlet, donc un cas porté par le seul contact est indépendant de $\lambda$.

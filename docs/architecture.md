@@ -29,15 +29,16 @@
 
 ## Dépendances
 
-- `config.py` ne dépend d'aucun module du projet ; il porte aussi le catalogue des champs pour
-  éviter un import circulaire avec `postproc.py`.
-- `utils.py` est la couche partagée (journalisation, PETSc, intégrales) et ne dépend que des
-  bibliothèques externes.
-- `contact.py` et `material.py` fournissent les lois physiques à `forms.py`.
-- `forms.py` construit la formulation ; `dirichlet.py`, `solver.py`, `reactions.py` et
-  `postproc.py` consomment les objets produits.
-- `main.py` est le seul point d'entrée qui assemble toutes les couches ; le `main.py` racine est un
-  shim de compatibilité qui importe `hyper_contact_fem.main`.
+- `hyper_contact_fem/config.py` ne dépend d'aucun module du projet ; il porte aussi le catalogue
+  des champs pour éviter un import circulaire avec `hyper_contact_fem/postproc.py`.
+- `hyper_contact_fem/utils.py` est la couche partagée (journalisation, PETSc, intégrales) et ne
+  dépend que des bibliothèques externes.
+- `hyper_contact_fem/contact.py` et `hyper_contact_fem/material.py` fournissent les lois physiques
+  à `hyper_contact_fem/forms.py`.
+- `hyper_contact_fem/forms.py` construit la formulation ; `dirichlet.py`, `solver.py`,
+  `reactions.py` et `postproc.py` du paquet consomment les objets produits.
+- `hyper_contact_fem/main.py` est le seul point d'entrée qui assemble toutes les couches ; le
+  `main.py` racine est un shim de compatibilité qui importe `hyper_contact_fem.main`.
 
 ## Règles de rangement
 
