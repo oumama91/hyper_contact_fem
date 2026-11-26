@@ -1,0 +1,21 @@
+# Normalisation des fins de ligne : LF en depot et dans les clones (Windows inclus).
+* text=auto eol=lf
+
+# Fichiers binaires : aucune conversion de fin de ligne.
+*.exo binary
+*.step binary
+*.bp binary
+*.vtu binary
+*.pvtu binary
+*.vti binary
+*.pvti binary
+*.vtp binary
+*.pvtp binary
+*.vtr binary
+*.pvtr binary
+*.vtk binary
+*.pvd binary
+
+# Formats texte a flux fixe.
+*.jou text eol=lf
+*.xdmf text eol=lf
