@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hyper-contact-fem"
+dynamic = ["version"]
+description = "Solveur éléments finis 3D hyperélastique avec contact unilatéral pénalisé"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{name = "hyper_contact_fem contributors"}]
+# Les dépendances d'exécution (dolfinx, petsc4py, ...) viennent de conda-forge,
+# pas de PyPI : voir environment.yml.
+dependencies = []
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Mathematics",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=9", "ruff", "mypy"]
+
+[project.scripts]
+hyper-contact-fem = "hyper_contact_fem.main:main"
+
+[project.urls]
+Repository = "https://github.com/oumama91/hyper_contact_fem"
+
+[tool.setuptools]
+packages = ["hyper_contact_fem"]
+
+[tool.setuptools.dynamic]
+version = {file = "VERSION"}
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 135
+
+[tool.ruff.lint]
+select = ["F", "I", "E4", "TRY", "PYI", "PLW", "RUF"]
+ignore = [
+  "TRY003", # messages d'erreur explicites au point de levée, sans classes d'exception dédiées
+  "TRY004", # ValueError conservé pour les entrées invalides (décision du projet)
+  "TRY400", # logger.error volontaire : pas de traceback sauf avec --verbose
+  "RUF002", # symboles grecs (σ, ...) voulus dans les docstrings
+]
+
+[tool.ruff.lint.per-file-ignores]
+# sys.path.insert avant les imports applicatifs : E402 est volontairement ignoré et les directives
+# # noqa: E402 restent en place ; RUF100 les considérerait sinon comme inutiles.
+"tools/capture_metrics.py" = ["E402", "RUF100"]
+# BLE n'est pas sélectionné : les directives # noqa: BLE001 documentent les except volontairement larges.
+"hyper_contact_fem/exodus_mesh.py" = ["RUF100"]
+
+[tool.mypy]
+# Stubs dolfinx/petsc4py/basix incomplets ou absents : on ne bloque pas sur les imports.
+ignore_missing_imports = true
+# Sans base explicite, `mypy .` peut voir un script sous deux noms (tools.capture_metrics et
+# capture_metrics) et s'arrêter avant tout contrôle.
+explicit_package_bases = true

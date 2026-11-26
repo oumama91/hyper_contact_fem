@@ -54,6 +54,6 @@ active conda, cherche l'installation sous `$HOME/miniconda3` (surcharge possible
 et fixe par défaut `OMP_NUM_THREADS = OPENBLAS_NUM_THREADS = MKL_NUM_THREADS = 1` ; une valeur
 déjà fixée par l'appelant reste prioritaire.
 
-Contrôles statiques optionnels : `ruff check .` (`ruff.toml`) et `mypy .` (`mypy.ini`). `mypy`
-signale encore des erreurs liées aux stubs incomplets de dolfinx/PETSc ; elles sont préexistantes
-et ne bloquent pas l'exécution.
+Contrôles statiques optionnels : `ruff check .` et `mypy .`, configurés dans `pyproject.toml`.
+`mypy` signale encore des erreurs liées aux stubs incomplets de dolfinx/PETSc ; elles sont
+préexistantes et ne bloquent pas l'exécution.

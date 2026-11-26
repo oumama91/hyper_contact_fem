@@ -9,11 +9,11 @@ contre des obstacles rigides analytiques. Maillage Exodus II, étude YAML.
 Linux/WSL et conda-forge ; PETSc doit inclure MUMPS.
 
 ```bash
-conda create -n fenicsx-env -c conda-forge \
-  python=3.12 fenics-dolfinx=0.11.0 petsc4py=3.25.6 mpi4py=4.1.2 \
-  numpy=2.5.3 netcdf4=1.7.4 pydantic=2.14.1 pyyaml=6.0.3 pytest=9.1.1
+conda env create -f environment.yml
 conda activate fenicsx-env
 ```
+
+Les versions de référence sont fixées dans `environment.yml`.
 
 ## Usage
 
@@ -23,14 +23,18 @@ mpiexec -n 2 python main.py studies/O-ring_compression.yaml     # parallèle
 python -m pytest tests                                          # tests
 ```
 
-Sous Windows, exécuter ces commandes dans WSL via `bash tools/wsl_run.sh <commande>`.
-`output.outdir` est obligatoire ; `mesh.file` et `output.outdir` sont relatifs au fichier YAML.
+`python -m hyper_contact_fem studies/O-ring_compression.yaml` est équivalent à la commande
+`python main.py ...`. Sous Windows, exécuter ces commandes dans WSL via
+`bash tools/wsl_run.sh <commande>`. `output.outdir` est obligatoire ; `mesh.file` et
+`output.outdir` sont relatifs au fichier YAML.
 
 ## Structure
 
 ```text
 hyper_contact_fem/   code : configuration, maillage, physique, solveur, post-traitement
 main.py              point d'entrée compatible
+pyproject.toml       métadonnées, ruff, mypy, pytest
+environment.yml      environnement conda-forge
 studies/             cas YAML
 mesh/                maillage Exodus II, journal Cubit et géométrie source
 reference/           sorties figées de non-régression

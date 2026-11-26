@@ -48,6 +48,8 @@
   de run courantes.
 - **Sorties** : `results/`, ignoré par Git et créé à l'exécution.
 - **Outillage** : `tools/` pour les scripts de capture/comparaison et le wrapper WSL.
+- **Configuration** : `pyproject.toml` centralise les métadonnées, ruff, mypy et pytest ;
+  `environment.yml` fixe l'environnement conda-forge.
 - **Tests** : `tests/`, plats ; les helpers partagés doivent aller dans `conftest.py` plutôt que
   d'importer un fichier de test depuis un autre.
 - **Documentation** : `docs/` pour les sujets détaillés ; le `README.md` reste une porte d'entrée.
