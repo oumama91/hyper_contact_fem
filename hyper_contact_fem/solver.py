@@ -18,9 +18,9 @@ from dolfinx.fem.petsc import (
 from mpi4py import MPI
 from petsc4py import PETSc
 
-from config import Config, NewtonConfig
-from forms import Forms
-from utils import assemble_vec, petsc_vec
+from hyper_contact_fem.config import Config, NewtonConfig
+from hyper_contact_fem.forms import Forms
+from hyper_contact_fem.utils import assemble_vec, petsc_vec
 
 logger = logging.getLogger(__name__)
 

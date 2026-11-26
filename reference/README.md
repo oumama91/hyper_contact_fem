@@ -122,7 +122,7 @@ Les statistiques de champs suivent la même règle, avec un plancher par champ :
 
 La variante SNES, les résultats comparés et la conclusion sont archivés dans
 [`docs/decisions/snes-evaluation.md`](../docs/decisions/snes-evaluation.md). Le solveur retenu
-reste la boucle de Newton avec recherche linéaire par backtracking de `solver.py`.
+reste la boucle de Newton avec recherche linéaire par backtracking de `hyper_contact_fem/solver.py`.
 
 ## Sorties de run
 

@@ -1,7 +1,7 @@
 # Essai de PETSc.SNES : résultats et conclusion
 
 Décision historique archivée : le solveur retenu reste la boucle de Newton avec recherche linéaire
-par backtracking de `solver.py`. Aucun code SNES ne subsiste dans le dépôt.
+par backtracking de `hyper_contact_fem/solver.py`. Aucun code SNES ne subsiste dans le dépôt.
 
 Une variante du solveur a été évaluée : `dolfinx.fem.petsc.NonlinearProblem` (dolfinx 0.11.0,
 PETSc 3.25.6, LU direct MUMPS) avec la boucle externe de pilotage de charge / cutback inchangée,
@@ -16,11 +16,11 @@ pas écraser les sorties de référence. L'amplitude a été retenue après des 
 
 | Étude | Solveur | Incréments | Itér. Newton | Cutbacks | `u_max` [mm] | `total_Fz` [N] | Temps [s] |
 |---|---|---|---|---|---|---|---|
-| O-ring | Newton (`solver.py`) | 1 | 10 | 0 | 4.664172049663e-01 | 2.480275894546e+01 | 82 |
+| O-ring | Newton (`hyper_contact_fem/solver.py`) | 1 | 10 | 0 | 4.664172049663e-01 | 2.480275894546e+01 | 82 |
 | O-ring | SNES `basic` | 1 | 10 | 0 | 4.664172049663e-01 | 2.480275894546e+01 | 89 |
 | O-ring | SNES `bt` | 1 | 10 | 0 | 4.664172049663e-01 | 2.480275894546e+01 | 86 |
 | O-ring | SNES `l2` | 1 | 10 | 0 | 4.664172050253e-01 | 2.480275894804e+01 | 87 |
-| sévère | Newton (`solver.py`) | 1 | 5 | 0 | 1.108784995715e+01 | 1.229537808709e+03 | 47 |
+| sévère | Newton (`hyper_contact_fem/solver.py`) | 1 | 5 | 0 | 1.108784995715e+01 | 1.229537808709e+03 | 47 |
 | sévère | SNES `basic` | 0 | — | 9 | échec (PETSc -4) | — | 164 |
 | sévère | SNES `bt` | 0 | — | ≥ 6 | échec (PETSc -5) | — | > 1800 |
 | sévère | SNES `l2` | 0 | — | ≥ 5 | échec (PETSc -5) | — | > 1800 |

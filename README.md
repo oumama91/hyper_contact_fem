@@ -29,7 +29,8 @@ Sous Windows, exécuter ces commandes dans WSL via `bash tools/wsl_run.sh <comma
 ## Structure
 
 ```text
-main.py, *.py        code du solveur (CLI, configuration, maillage, physique, solveur, post-traitement)
+hyper_contact_fem/   code : configuration, maillage, physique, solveur, post-traitement
+main.py              point d'entrée compatible
 studies/             cas YAML
 mesh/                maillage Exodus II, journal Cubit et géométrie source
 reference/           sorties figées de non-régression

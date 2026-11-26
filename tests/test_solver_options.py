@@ -10,7 +10,7 @@ import pytest
 from mpi4py import MPI
 from petsc4py import PETSc
 
-from solver import LinearSolver
+from hyper_contact_fem.solver import LinearSolver
 
 KEYS = ("fea_ksp_type", "fea_pc_type", "fea_pc_factor_mat_solver_type")
 

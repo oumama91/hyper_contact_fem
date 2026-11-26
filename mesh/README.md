@@ -6,7 +6,7 @@ Ce dossier contient les entrées de maillage du cas de référence.
 |---|---|
 | `O-ring.exo` | maillage Exodus II `HEX20` utilisé par `studies/O-ring_compression.yaml` |
 | `O-ring.jou` | journal Cubit/Trelis qui régénère `O-ring.exo` |
-| `O-ring.step` | géométrie source importée par le journal ; fichier local, non versionné pour l'instant |
+| `O-ring.step` | géométrie source importée par le journal |
 
 ## Régénération
 
@@ -19,6 +19,4 @@ Les noms de sidesets produits par le journal doivent rester alignés sur les `bo
 (3D, un seul bloc volumique, faces de bord, déterminants positifs) sont détaillées dans
 [`docs/usage.md`](../docs/usage.md#maillage-exodus).
 
-`O-ring.step` est nécessaire pour rejouer le journal, mais n'est pas suivi par Git à ce stade ;
-si sa conservation devient permanente, l'ajouter explicitement au dépôt et mettre à jour cette
-note.
+`O-ring.step` est versionné avec le journal pour que la géométrie source reste reproductible.

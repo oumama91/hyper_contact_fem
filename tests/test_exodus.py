@@ -12,8 +12,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from exodus_mesh import EXODUS_ORDER, _check_mesh, _local_facet_of_side
-from exodus_reader import read_exodus
+from hyper_contact_fem.exodus_mesh import EXODUS_ORDER, _check_mesh, _local_facet_of_side
+from hyper_contact_fem.exodus_reader import read_exodus
 
 MESH_FILE = Path(__file__).resolve().parents[1] / "mesh" / "O-ring.exo"
 

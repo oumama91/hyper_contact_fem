@@ -17,4 +17,4 @@ ignore = [
 # # noqa: E402 restent en place ; RUF100 les considérerait sinon comme inutiles.
 "tools/capture_metrics.py" = ["E402", "RUF100"]
 # BLE n'est pas sélectionné : les directives # noqa: BLE001 documentent les except volontairement larges.
-"exodus_mesh.py" = ["RUF100"]
+"hyper_contact_fem/exodus_mesh.py" = ["RUF100"]

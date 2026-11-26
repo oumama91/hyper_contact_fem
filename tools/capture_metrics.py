@@ -1,9 +1,9 @@
 """
 Capture haute précision des métriques et des champs d'une étude, pour la non-régression.
 
-Répète exactement la séquence d'appels de ``main._run`` (configuration, maillage, formes,
-conditions aux limites, solveur de Newton, post-traitement) mais écrit les valeurs en
-précision complète (repr JSON) au lieu de se limiter au résumé console. Les valeurs
+Répète exactement la séquence d'appels de ``hyper_contact_fem.main._run`` (configuration,
+maillage, formes, conditions aux limites, solveur de Newton, post-traitement) mais écrit les
+valeurs en précision complète (repr JSON) au lieu de se limiter au résumé console. Les valeurs
 affichées par ``main.py`` sont arrondies (7 chiffres pour |u|max, 5 pour sigma_1_max), ce qui ne
 permet pas de vérifier les tolérances 1e-12 / 1e-8.
 
@@ -43,15 +43,15 @@ from mpi4py import MPI
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path.cwd()))
 
-import postproc as pp  # noqa: E402
-from config import load_config  # noqa: E402
-from dirichlet import apply_bcs  # noqa: E402
-from exodus_mesh import build_mesh  # noqa: E402
-from forms import build_forms  # noqa: E402
-from postproc import postprocess  # noqa: E402
-from reactions import ReactionHistory  # noqa: E402
-from solver import solve_newton  # noqa: E402
-from utils import configure_logging  # noqa: E402
+import hyper_contact_fem.postproc as pp  # noqa: E402
+from hyper_contact_fem.config import load_config  # noqa: E402
+from hyper_contact_fem.dirichlet import apply_bcs  # noqa: E402
+from hyper_contact_fem.exodus_mesh import build_mesh  # noqa: E402
+from hyper_contact_fem.forms import build_forms  # noqa: E402
+from hyper_contact_fem.postproc import postprocess  # noqa: E402
+from hyper_contact_fem.reactions import ReactionHistory  # noqa: E402
+from hyper_contact_fem.solver import solve_newton  # noqa: E402
+from hyper_contact_fem.utils import configure_logging  # noqa: E402
 
 
 class _FieldCapture:

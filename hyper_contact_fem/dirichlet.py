@@ -8,9 +8,9 @@ from dolfinx import fem
 from dolfinx.mesh import MeshTags
 from mpi4py import MPI
 
-from config import Config, DirichletBoundary
-from forms import Forms
-from utils import SCALAR, owned_size
+from hyper_contact_fem.config import Config, DirichletBoundary
+from hyper_contact_fem.forms import Forms
+from hyper_contact_fem.utils import SCALAR, owned_size
 
 
 @dataclass(frozen=True)

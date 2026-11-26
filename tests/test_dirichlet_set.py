@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from dirichlet import DirichletSet, LocatedBC
+from hyper_contact_fem.dirichlet import DirichletSet, LocatedBC
 
 
 def _bc(name: str, comp: int, dofs: list[int]) -> LocatedBC:

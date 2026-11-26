@@ -15,7 +15,7 @@ from dolfinx import fem
 from dolfinx import mesh as dm
 from mpi4py import MPI
 
-import postproc as pp
+import hyper_contact_fem.postproc as pp
 from tools import capture_metrics as cm
 
 _POINTS = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])

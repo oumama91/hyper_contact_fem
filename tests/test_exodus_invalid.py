@@ -13,8 +13,8 @@ import netCDF4
 import numpy as np
 import pytest
 
-from exodus_mesh import _check_mesh
-from exodus_reader import ExodusMesh, read_exodus
+from hyper_contact_fem.exodus_mesh import _check_mesh
+from hyper_contact_fem.exodus_reader import ExodusMesh, read_exodus
 
 ROOT = Path(__file__).resolve().parents[1]
 REFERENCE_MESH = ROOT / "mesh" / "O-ring.exo"

@@ -13,7 +13,7 @@ import copy
 import pytest
 from pydantic import ValidationError
 
-from config import parse_config
+from hyper_contact_fem.config import parse_config
 
 BASE = {
     "study_name": "test",

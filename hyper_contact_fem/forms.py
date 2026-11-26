@@ -8,10 +8,10 @@ import ufl
 from dolfinx import fem
 from dolfinx.mesh import Mesh, MeshTags
 
-from config import Config, ContactBoundary
-from contact import contact_traction
-from material import NeoHookean
-from utils import JIT_OPTIONS, SCALAR, Expr, owned_size
+from hyper_contact_fem.config import Config, ContactBoundary
+from hyper_contact_fem.contact import contact_traction
+from hyper_contact_fem.material import NeoHookean
+from hyper_contact_fem.utils import JIT_OPTIONS, SCALAR, Expr, owned_size
 
 
 @dataclass

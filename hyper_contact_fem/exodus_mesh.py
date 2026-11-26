@@ -48,9 +48,9 @@ from dolfinx import mesh as dm
 from dolfinx.mesh import Mesh, MeshTags, entities_to_geometry
 from mpi4py import MPI
 
-from config import Config
-from exodus_reader import ExodusMesh, read_exodus
-from utils import integrate
+from hyper_contact_fem.config import Config
+from hyper_contact_fem.exodus_reader import ExodusMesh, read_exodus
+from hyper_contact_fem.utils import integrate
 
 logger = logging.getLogger(__name__)
 
